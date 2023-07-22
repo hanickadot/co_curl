@@ -42,18 +42,47 @@ namespace internal {
 		}
 	};
 
-	// allow us to use scheduler when a coroutine finishes and there is something to be done...
-	template <typename Promise> struct suspend_and_jump_to_next: std::suspend_always {
-		Promise & promise;
-
-		suspend_and_jump_to_next(Promise & pr) noexcept: std::suspend_always{}, promise{pr} { }
-
-		auto await_suspend(std::coroutine_handle<Promise>) noexcept {
-			return promise.scheduler.coroutine_finished(promise.awaiter);
-		}
-	};
-
 } // namespace internal
+
+template <typename Promise> concept promise_with_scheduler = requires(Promise & promise) {
+	{ promise.awaiter } -> std::convertible_to<std::coroutine_handle<>>;
+	{ promise.scheduler };
+};
+
+template <promise_with_scheduler Promise> struct never_suspend_and_mark_root {
+	Promise & promise;
+
+	never_suspend_and_mark_root(Promise & pr) noexcept: promise{pr} {
+		promise.scheduler.start();
+	}
+
+	constexpr bool await_ready() const noexcept { return true; }
+	constexpr void await_resume() const noexcept { }
+	constexpr void await_suspend(std::coroutine_handle<>) {
+		// will never be called
+		assert(false);
+	}
+};
+
+template <promise_with_scheduler Promise> struct suspend_and_schedule_next {
+	Promise & promise;
+
+	suspend_and_schedule_next(Promise & pr) noexcept: promise{pr} {
+		promise.scheduler.finish();
+	}
+
+	constexpr bool await_ready() const noexcept { return false; }
+	constexpr void await_resume() const noexcept { }
+	constexpr auto await_suspend(std::coroutine_handle<Promise>) {
+		// TODO: if there is multiple awaiters, we want to let know scheduler
+
+		if (promise.awaiter) {
+			return promise.scheduler.schedule_now(promise.awaiter);
+		}
+
+		return promise.scheduler.schedule_next();
+	}
+};
 
 template <typename R, typename Scheduler> struct promise_type: internal::promise_return<R> {
 	using scheduler_type = Scheduler;
@@ -68,17 +97,12 @@ template <typename R, typename Scheduler> struct promise_type: internal::promise
 	promise_type(scheduler_type & sch = co_curl::get_scheduler<scheduler_type>(), auto &&...) noexcept: scheduler{sch} { }
 
 	// all my tasks are immediate
-	constexpr auto initial_suspend() noexcept -> std::suspend_never {
-		return {};
+	constexpr auto initial_suspend() noexcept {
+		return never_suspend_and_mark_root(*this);
 	};
 
 	constexpr auto final_suspend() noexcept {
-		// this gives our scheduler chance to decide what to do with rest of tasks...
-
-		// if (multiple_awaiters) {
-		//	scheduler.mark_as_ready(awaiter)
-		// }
-		return scheduler.coroutine_finished(awaiter);
+		return suspend_and_schedule_next(*this);
 	};
 
 	constexpr auto self() noexcept -> std::coroutine_handle<promise_type> {
@@ -103,7 +127,7 @@ template <typename R, typename Scheduler> struct promise_type: internal::promise
 			awaiter = other;
 		}
 
-		return scheduler.do_something_else(other);
+		return scheduler.do_something_else();
 	}
 };
 
@@ -113,8 +137,6 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct ta
 
 	handle_type handle{};
 
-	static_assert(promise_has_awaiter<handle_type>);
-
 	task(handle_type h) noexcept: handle{h} { }
 
 	void finish() {
@@ -122,12 +144,12 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct ta
 		//	std::cout << "\n\n\nFINISH:\n";
 		// }
 
-		std::cout << "\n\n\nFINISH\n";
-		while (!handle.done()) {
-			const auto next_handle = handle.promise().scheduler.loop_to_finish();
-			assert(next_handle);
-			next_handle.resume();
-		}
+		// std::cout << "\n\n\nFINISH\n";
+		// while (!handle.done()) {
+		//	const auto next_handle = handle.promise().scheduler.loop_to_finish();
+		//	assert(next_handle);
+		//	next_handle.resume();
+		// }
 	}
 
 	auto get_result_without_finishing() & noexcept {
