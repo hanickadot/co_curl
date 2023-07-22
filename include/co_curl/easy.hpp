@@ -55,6 +55,7 @@ struct easy_handle {
 
 	void verbose(bool enable = true) noexcept;
 	void pipewait(bool enable = true) noexcept;
+	void fresh_connect(bool enable = true) noexcept;
 
 	void write_function(size_t (*)(char *, size_t, size_t, void *)) noexcept;
 	void write_data(void *) noexcept;

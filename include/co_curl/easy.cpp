@@ -41,6 +41,10 @@ void co_curl::easy_handle::pipewait(bool enable) noexcept {
 	curl_easy_setopt(native_handle, CURLOPT_PIPEWAIT, static_cast<long>(enable));
 }
 
+void co_curl::easy_handle::fresh_connect(bool enable) noexcept {
+	curl_easy_setopt(native_handle, CURLOPT_FRESH_CONNECT, static_cast<long>(enable));
+}
+
 void co_curl::easy_handle::write_function(size_t (*f)(char *, size_t, size_t, void *)) noexcept {
 	curl_easy_setopt(native_handle, CURLOPT_WRITEFUNCTION, f);
 }

@@ -1,6 +1,7 @@
 #ifndef CO_CURL_TASK_HPP
 #define CO_CURL_TASK_HPP
 
+#include "concepts.hpp"
 #include "scheduler.hpp"
 #include <optional>
 #include <cassert>
@@ -143,7 +144,7 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct ta
 		}
 	}
 
-	void finish() {
+	void finish() const {
 		assert(handle != nullptr);
 		if (!handle.done()) {
 			handle.resume();
@@ -179,7 +180,17 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct ta
 		return get_without_finishing();
 	}
 
+	auto get() const & noexcept {
+		finish();
+		return get_without_finishing();
+	}
+
 	auto get() && noexcept {
+		finish();
+		return get_without_finishing();
+	}
+
+	auto get() const && noexcept {
 		finish();
 		return get_without_finishing();
 	}
@@ -215,6 +226,11 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct ta
 
 	auto await_resume() const && noexcept {
 		return get_without_finishing();
+	}
+
+	// support for streaming
+	friend std::ostream & operator<<(std::ostream & os, const task & t) requires ostreamable<R> {
+		return os << t.get();
 	}
 };
 
