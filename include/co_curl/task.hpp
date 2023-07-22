@@ -135,38 +135,26 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct ta
 	task(handle_type h) noexcept: handle{h} { }
 
 	void finish() {
-		// if (!handle.done()) {
-		//	std::cout << "\n\n\nFINISH:\n";
-		// }
-
-		// std::cout << "\n\n\nFINISH\n";
-		// while (!handle.done()) {
-		//	const auto next_handle = handle.promise().scheduler.loop_to_finish();
-		//	assert(next_handle);
-		//	next_handle.resume();
-		// }
+		assert(handle != nullptr);
+		if (!handle.done()) {
+			handle.resume();
+		}
 	}
 
-	auto get_result_without_finishing() & noexcept {
-		assert(handle != nullptr);
-		assert(handle.done());
-		return handle.promise().get_result();
-	}
-
-	auto get_result_without_finishing() && noexcept {
-		assert(handle != nullptr);
-		assert(handle.done());
-		return std::move(handle.promise()).get_result();
+	template <typename Task> friend auto get_result_without_finishing(Task && self) {
+		assert(self.handle != nullptr);
+		assert(self.handle.done());
+		return self.handle.promise().get_result();
 	}
 
 	auto get_result() & noexcept {
 		finish();
-		return get_result_without_finishing();
+		return get_result_without_finishing(*this);
 	}
 
 	auto get_result() && noexcept {
 		finish();
-		return get_result_without_finishing();
+		return get_result_without_finishing(*this);
 	}
 
 	operator R() & noexcept {
@@ -189,12 +177,12 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct ta
 
 	auto await_resume() & noexcept {
 		handle.promise().scheduler.after_wakeup();
-		return get_result_without_finishing();
+		return get_result_without_finishing(*this);
 	}
 
 	auto await_resume() && noexcept {
 		handle.promise().scheduler.after_wakeup();
-		return get_result_without_finishing();
+		return get_result_without_finishing(*this);
 	}
 };
 
