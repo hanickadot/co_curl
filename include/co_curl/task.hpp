@@ -17,12 +17,12 @@ namespace internal {
 			result = T(std::forward<decltype(r)>(r));
 		}
 
-		constexpr T & get_result() & noexcept {
+		constexpr T & get() & noexcept {
 			assert(result.has_value());
 			return *result;
 		}
 
-		constexpr T get_result() && noexcept {
+		constexpr T get() && noexcept {
 			assert(result.has_value());
 			return std::move(*result);
 		}
@@ -35,7 +35,7 @@ namespace internal {
 	template <> struct promise_return<void> {
 		constexpr void return_void() noexcept { }
 
-		constexpr void get_result() noexcept { }
+		constexpr void get() noexcept { }
 
 		auto unhandled_exception() noexcept {
 			std::terminate(); // todo remove
@@ -91,8 +91,8 @@ template <typename R, typename Scheduler> struct promise_type: internal::promise
 	}
 
 	// pass all transformations to scheduler
-	template <typename T> constexpr auto await_transform(T && something) {
-		if constexpr (scheduler_transforms<Scheduler, promise_type &, T>) {
+	template <typename T> constexpr decltype(auto) await_transform(T && something) {
+		if constexpr (scheduler_transforms<Scheduler, promise_type &, T &&>) {
 			return scheduler.transform(*this, something);
 		} else {
 			return std::forward<T>(something);
@@ -122,10 +122,26 @@ template <typename R, typename Scheduler> struct promise_type: internal::promise
 template <typename R, typename Scheduler = co_curl::default_scheduler> struct task {
 	using promise_type = co_curl::promise_type<R, Scheduler>;
 	using handle_type = std::coroutine_handle<promise_type>;
+	using return_type = R;
 
 	handle_type handle{};
 
 	task(handle_type h) noexcept: handle{h} { }
+
+	task(const task &) = delete;
+	task(task && other) noexcept: handle{std::exchange(other.handle, nullptr)} { }
+
+	task & operator=(const task &) = delete;
+	task & operator=(task && other) noexcept {
+		std::swap(handle, other.handle);
+		return *this;
+	}
+
+	~task() noexcept {
+		if (handle) {
+			handle.destroy();
+		}
+	}
 
 	void finish() {
 		assert(handle != nullptr);
@@ -134,34 +150,46 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct ta
 		}
 	}
 
-	auto get_result_without_finishing() & {
+	auto get_without_finishing() & {
 		assert(handle != nullptr);
 		assert(handle.done());
-		return handle.promise().get_result();
+		return handle.promise().get();
 	}
 
-	auto get_result_without_finishing() && {
+	auto get_without_finishing() const & {
 		assert(handle != nullptr);
 		assert(handle.done());
-		return std::move(handle.promise()).get_result();
+		return handle.promise().get();
 	}
 
-	auto get_result() & noexcept {
-		finish();
-		return get_result_without_finishing();
+	auto get_without_finishing() const && {
+		assert(handle != nullptr);
+		assert(handle.done());
+		return std::move(handle.promise()).get();
 	}
 
-	auto get_result() && noexcept {
+	auto get_without_finishing() && {
+		assert(handle != nullptr);
+		assert(handle.done());
+		return std::move(handle.promise()).get();
+	}
+
+	auto get() & noexcept {
 		finish();
-		return get_result_without_finishing();
+		return get_without_finishing();
+	}
+
+	auto get() && noexcept {
+		finish();
+		return get_without_finishing();
 	}
 
 	operator R() & noexcept {
-		return get_result();
+		return get();
 	}
 
 	operator R() && noexcept {
-		return get_result();
+		return get();
 	}
 
 	bool await_ready() const noexcept {
@@ -169,16 +197,24 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct ta
 		return handle.done();
 	}
 
-	template <typename T> auto await_suspend(std::coroutine_handle<T> awaiter) {
+	template <typename T> auto await_suspend(std::coroutine_handle<T> awaiter) const {
 		return handle.promise().someone_is_waiting_on_me(awaiter);
 	}
 
 	auto await_resume() & noexcept {
-		return get_result_without_finishing();
+		return get_without_finishing();
 	}
 
 	auto await_resume() && noexcept {
-		return get_result_without_finishing();
+		return get_without_finishing();
+	}
+
+	auto await_resume() const & noexcept {
+		return get_without_finishing();
+	}
+
+	auto await_resume() const && noexcept {
+		return get_without_finishing();
 	}
 };
 
