@@ -1,0 +1,5 @@
+#include "co_curl.hpp"
+
+auto co_curl::version() noexcept -> std::string_view {
+	return "${CO_CURL_VERSION}";
+}

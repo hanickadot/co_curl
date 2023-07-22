@@ -1,0 +1,12 @@
+CLANG_FORMAT_ON_SAVE = true
+
+#exclude = "{$exclude}"
+excludeDirectories = "{$excludeDirectories,build,build-*,source/bsdiff/fuzzer/*corpus}"
+includeDirectories = "{$includeDirectories,buildTypes}"
+include = "{$include,.gitignore,.gitattributes,.travis*,.conan,.teamcity,.clang-format}"
+excludeInFolderSearch = "{$excludeInFolderSearch,external,build,single-header}" 
+includeInFolderSearch = "{$includeInFolderSearch,.teamcity}"
+excludeInFileChooser = "{$excludeInFileChooser,external/**,build/**,single-header/*}" 
+
+softTabs = false
+tabSize = 4

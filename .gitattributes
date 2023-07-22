@@ -1,0 +1,2 @@
+*.cpp text diff=cpp eol=lf
+*.hpp text diff=cpp eol=lf
