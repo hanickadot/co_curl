@@ -69,9 +69,9 @@ struct multi_handle {
 template <typename Scheduler> struct perform_later {
 	Scheduler & scheduler;
 	easy_handle & easy;
-	bool result{true}; // FIXME provide correct result
+	bool & result;
 
-	perform_later(Scheduler & sch, easy_handle & h) noexcept: scheduler{sch}, easy{h} { }
+	perform_later(Scheduler & sch, easy_handle & h) noexcept: scheduler{sch}, easy{h}, result{scheduler.waiting.result} { }
 
 	constexpr bool await_ready() noexcept {
 		return false;
@@ -81,7 +81,7 @@ template <typename Scheduler> struct perform_later {
 		return scheduler.schedule_later(caller, easy);
 	}
 
-	constexpr int await_resume() const noexcept {
+	constexpr bool await_resume() const noexcept {
 		return result;
 	}
 };

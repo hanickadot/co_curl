@@ -7,8 +7,8 @@ auto fetch(std::string url) -> co_curl::task<std::string> {
 
 	handle.write_into(output);
 
-	if (!co_await co_curl::perform(handle)) {
-		co_return "";
+	if (!co_await handle.perform()) {
+		co_return "weird";
 	}
 
 	co_return output;

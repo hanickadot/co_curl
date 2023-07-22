@@ -1,4 +1,5 @@
 #include <co_curl/co_curl.hpp>
+#include <co_curl/format.hpp>
 #include <iostream>
 
 auto fetch(std::string url) -> co_curl::task<std::string> {
@@ -15,7 +16,7 @@ auto fetch(std::string url) -> co_curl::task<std::string> {
 		co_return "";
 	}
 
-	std::cout << "| " << url << " downloaded (size = " << output.size();
+	std::cout << "| " << url << " downloaded (size = " << co_curl::data_amount(output.size());
 
 	std::cout << ", response-code: " << handle.get_response_code();
 
@@ -66,10 +67,13 @@ auto download_two_b() -> co_curl::task<std::string> {
 auto download_four() -> co_curl::task<std::string> {
 	auto a = download_two();
 	auto b = download_two_b();
+
+	std::cout << "\n================\n\n";
+
 	co_return co_await a + co_await b;
 }
 
 int main() {
 	const std::string r = download_four();
-	std::cout << r.size() << "\n";
+	std::cout << "total downloaded amount: " << co_curl::data_amount(r.size()) << "\n";
 }

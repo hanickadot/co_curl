@@ -35,6 +35,7 @@ struct coroutine_handle_queue {
 struct waiting_coroutines_for_curl_finished {
 	std::map<CURL *, std::coroutine_handle<>> data{};
 	multi_handle curl{};
+	bool result{};
 
 	void insert(easy_handle & trigger, std::coroutine_handle<> coro_handle) {
 		[[maybe_unused]] const auto r = data.emplace(trigger.native_handle, coro_handle);
@@ -70,7 +71,8 @@ struct waiting_coroutines_for_curl_finished {
 			}
 
 			if (const auto msg = curl.info_read()) {
-				void * handle = msg->visit([](multi_handle::finished f) {
+				void * handle = msg->visit([&](multi_handle::finished f) {
+					this->result = (f.code == 0); // CURLE_OK
 					return f.handle;
 				});
 

@@ -25,6 +25,10 @@ bool co_curl::easy_handle::sync_perform() noexcept {
 	return CURLE_OK == curl_easy_perform(native_handle);
 }
 
+auto co_curl::easy_handle::perform() noexcept -> co_curl::perform {
+	return {*this};
+}
+
 void co_curl::easy_handle::url(const char * u) {
 	curl_easy_setopt(native_handle, CURLOPT_URL, u);
 }

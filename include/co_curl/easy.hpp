@@ -12,6 +12,8 @@ using CURL = void;
 
 namespace co_curl {
 
+struct perform;
+
 struct easy_handle {
 	CURL * native_handle;
 
@@ -45,6 +47,7 @@ struct easy_handle {
 	void reset() noexcept;
 	easy_handle duplicate() const;
 	bool sync_perform() noexcept;
+	auto perform() noexcept -> co_curl::perform;
 
 	// setters
 	void url(const char * u);
@@ -62,13 +65,13 @@ struct easy_handle {
 	auto get_response_code() const noexcept -> unsigned;
 
 	// extended callbacks
-
-	template <typename T, std::invocable<T> Fnc> void write_callback(Fnc & f) {
+	template <typename T> void write_callback(std::invocable<T> auto & f) {
 		using value_type = typename T::value_type;
+		using fnc_t = decltype(f);
 
 		const auto helper = +[](char * in, size_t, size_t nmemb, void * udata) -> size_t {
 			const auto data = T(reinterpret_cast<const value_type *>(const_cast<const char *>(in)), nmemb);
-			Fnc & f = *static_cast<Fnc *>(udata);
+			fnc_t & f = *static_cast<fnc_t *>(udata);
 			try {
 				f(data);
 				return nmemb;
@@ -81,11 +84,11 @@ struct easy_handle {
 		write_data(&f);
 	}
 
-	template <std::invocable<std::string_view> Fnc> void write_callback(Fnc & f) {
+	void write_callback(std::invocable<std::span<const std::string_view>> auto & f) {
 		write_callback<std::string_view>(f);
 	}
 
-	template <std::invocable<std::span<const std::byte>> Fnc> void write_callback(Fnc & f) {
+	void write_callback(std::invocable<std::span<const std::byte>> auto & f) {
 		write_callback<std::span<const std::byte>>(f);
 	}
 
@@ -106,7 +109,9 @@ struct easy_handle {
 		write_data(&out);
 	}
 
-	// getters
+	void write_nowhere() noexcept {
+		write_function(+[](char *, size_t, size_t nmemb, void *) -> size_t { return nmemb; });
+	}
 };
 
 struct perform {
