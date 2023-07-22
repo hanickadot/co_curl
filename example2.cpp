@@ -31,32 +31,32 @@ auto download_index() -> co_curl::task<void> {
 	co_await fetch("https://hanicka.net/FPL07048.jpg");
 }
 
-auto download_left(const co_curl::task<void> & index) -> co_curl::task<std::string> {
+auto process_left(const co_curl::task<void> & index) -> co_curl::task<size_t> {
 	std::cout << "download_left...\n";
 	co_await index;
-	auto r = std::string("left");
-	std::cout << "left: r.size() = " << r.size() << "\n";
-	co_return std::move(r);
+
+	co_return 1;
 }
 
-auto download_right(const co_curl::task<void> & index) -> co_curl::task<std::string> {
+auto process_right(const co_curl::task<void> & index) -> co_curl::task<size_t> {
 	std::cout << "download_right...\n";
 	co_await index;
-	auto r = std::string("right");
-	std::cout << "right: r.size() = " << r.size() << "\n";
-	co_return std::move(r);
+
+	co_return 2;
 }
 
-auto test() -> co_curl::task<std::string> {
+auto test() -> co_curl::task<void> {
 	const auto index = download_index();
 
-	auto a = download_left(index);
-	auto b = download_right(index);
+	std::cout << "before processing...\n";
 
-	co_return co_await a + co_await b;
+	const auto a = process_left(index);
+	const auto b = process_right(index);
+
+	const auto size = co_await a + co_await b;
+	std::cout << "total size: " << size << "\n";
 }
 
 int main() {
-	const std::string r = test();
-	std::cout << "total size: " << r.size() << "\n";
+	test();
 }

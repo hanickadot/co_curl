@@ -2,6 +2,7 @@
 #define CO_CURL_SCHEDULER_HPP
 
 #include "easy.hpp"
+#include "task_counter.hpp"
 #include <iostream>
 #include <map>
 #include <queue>
@@ -91,43 +92,6 @@ struct waiting_coroutines_for_curl_finished {
 
 template <typename Scheduler, typename Promise, typename T> concept scheduler_transforms = requires(Scheduler & sch, std::coroutine_handle<Promise> current, T obj) {
 	{ sch.transform(current, obj) };
-};
-
-struct task_counter {
-	unsigned tasks_in_running{0};
-	unsigned tasks_blocked{0};
-
-	void start() noexcept {
-		++tasks_in_running;
-	}
-
-	void finish() noexcept {
-		--tasks_in_running;
-	}
-
-	void blocked() noexcept {
-		++tasks_blocked;
-	}
-
-	void unblocked() noexcept {
-		--tasks_blocked;
-	}
-
-	bool graph_blocked() const noexcept {
-		return tasks_in_running == tasks_blocked;
-	}
-
-	void print() const noexcept {
-		std::cout << "tasks: " << tasks_in_running;
-
-		std::cout << ", sleeping: " << tasks_blocked;
-
-		if (graph_blocked()) {
-			std::cout << " [blocked]";
-		}
-
-		std::cout << "\n";
-	}
 };
 
 struct default_scheduler: task_counter {
