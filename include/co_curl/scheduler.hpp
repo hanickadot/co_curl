@@ -20,7 +20,7 @@ struct coroutine_handle_queue {
 		data.emplace(handle);
 	}
 
-	auto get_next() -> std::coroutine_handle<> {
+	auto take_one() -> std::coroutine_handle<> {
 		if (data.empty()) {
 			return {};
 		}
@@ -49,6 +49,7 @@ struct waiting_coroutines_for_curl_finished {
 		const auto handle = it->second;
 
 		data.erase(it);
+		curl.remove_handle(trigger);
 
 		return handle;
 	}
@@ -75,6 +76,8 @@ struct waiting_coroutines_for_curl_finished {
 				return trigger(handle);
 			}
 
+			// std::cout << "> remaining = " << *r << "\n";
+
 			if (*r == 0) {
 				break;
 			}
@@ -86,96 +89,86 @@ struct waiting_coroutines_for_curl_finished {
 	}
 };
 
-struct default_scheduler {
-	// all resuming is going to happen thru a coroutine_handle return
+template <typename Scheduler, typename Promise, typename T> concept scheduler_transforms = requires(Scheduler & sch, std::coroutine_handle<Promise> current, T obj) {
+	{ sch.transform(current, obj) };
+};
 
-	waiting_coroutines_for_curl_finished waiting{};
-	coroutine_handle_queue ready{};
-
-	unsigned started_tasks{0};
-	unsigned finished_tasks{0};
-	unsigned blocked_tasks{0};
+struct task_counter {
+	unsigned tasks_in_running{0};
+	unsigned tasks_blocked{0};
 
 	void start() noexcept {
-		started_tasks++;
+		++tasks_in_running;
 	}
 
 	void finish() noexcept {
-		finished_tasks++;
+		--tasks_in_running;
 	}
 
-	bool is_blocked() const noexcept {
-		// std::cout << "non-blocked: " << (started_tasks - finished_tasks) << "; blocked:" << blocked_tasks << " ";
-
-		const auto existing_tasks = (started_tasks - finished_tasks);
-		const bool r = existing_tasks == blocked_tasks;
-
-		// assert(existing_tasks >= blocked_tasks);
-
-		// if (r) std::cout << " [BLOCKED]\n";
-		// else
-		//	std::cout << "\n";
-
-		// assert(existing_tasks >= blocked_tasks);
-
-		return r;
+	void before_sleep() noexcept {
+		++tasks_blocked;
 	}
 
-	// this is called when someone is awaiting on a coroutine and it would block...
-	auto do_something_else(std::coroutine_handle<> awaiter = {}) -> std::coroutine_handle<> {
-		if (awaiter) {
-			return awaiter;
-		} else if (const auto next = ready.get_next()) {
-			// if we have something ready, run it
-			return schedule_now(next);
-		} else if (!is_blocked()) {
-			// leave current coroutine
-			return std::noop_coroutine();
-		} else if (const auto unblocked_next = waiting.complete_something()) {
-			return schedule_now(unblocked_next);
+	void after_wakeup() noexcept {
+		--tasks_blocked;
+	}
+
+	bool graph_blocked() const noexcept {
+		return tasks_in_running == tasks_blocked;
+	}
+
+	void print() const noexcept {
+		std::cout << "tasks: " << tasks_in_running << ", blocked: " << tasks_blocked;
+
+		if (graph_blocked()) {
+			std::cout << " [blocked]";
 		}
-		// we are blocked or we can complete something
-		std::terminate();
+
+		std::cout << "\n";
+	}
+};
+
+struct default_scheduler: task_counter {
+	coroutine_handle_queue ready{};
+	waiting_coroutines_for_curl_finished waiting{};
+
+	auto task_ready(std::coroutine_handle<> h) noexcept -> std::coroutine_handle<> {
+		return next_coroutine(h);
 	}
 
-	auto loop_to_finish() -> std::coroutine_handle<> {
-		if (auto next = waiting.complete_something()) {
-			blocked_tasks--;
-			return next;
+	auto schedule_later(std::coroutine_handle<> h, co_curl::easy_handle & curl) -> std::coroutine_handle<> {
+		waiting.insert(curl, h);
+		return next_coroutine();
+	}
+
+	auto next_coroutine(std::coroutine_handle<> immediate_awaiter = {}) -> std::coroutine_handle<> {
+		// task_counter::print();
+
+		if (immediate_awaiter) {
+			// std::cout << "[immediate awaiter]\n";
+			return immediate_awaiter;
+			// TODO add queue
+		} else if (auto next_ready = ready.take_one()) {
+			// std::cout << "[next_ready]\n";
+			return next_ready;
+
+		} else if (task_counter::graph_blocked()) {
+			// std::cout << "[blocked]\n";
+			if (auto next_completed = waiting.complete_something()) {
+				// std::cout << " [completed]\n";
+				return next_completed;
+			} else {
+				// std::cout << "nothing to complete!\n";
+			}
 		}
-		return {};
+		// std::cout << "------\n";
+		return std::noop_coroutine();
 	}
 
-	auto schedule_now(std::coroutine_handle<> h) noexcept -> std::coroutine_handle<> {
-		--blocked_tasks;
-		return h;
-	}
-
-	auto schedule_next() -> std::coroutine_handle<> {
-		return do_something_else();
-	}
-
-	void set_additional_awaiters(std::coroutine_handle<> awaitee, std::coroutine_handle<> awaiter) {
-		(void)awaitee;
-		(void)awaiter;
-		assert(false);
-	}
-
-	// our scheduler is interested in cu_curl::perform and will use multicurl instead
-	template <typename Promise> auto await_differently_on(std::coroutine_handle<Promise> current, co_curl::perform perf) {
-		// add to waiting coroutines and curl multi
-		waiting.insert(perf.handle, current);
-		++blocked_tasks;
-		// TODO provide result code
-		return co_curl::perform::lazy_perform();
-	}
-
-	// and we pass everything else thru without changes
-	template <typename Promise, typename Awaitable> auto await_differently_on(std::coroutine_handle<Promise> current, Awaitable && object) {
-		(void)current;
-		++blocked_tasks;
-		return std::forward<Awaitable>(object);
-	}
+	// template <typename Promise> auto transform(Promise & promise, co_curl::perform perf) const {
+	//	// transform blocking perform into lazy one
+	//	return co_curl::perform_later{.easy = perf.handle, .multi = promise.scheduler.waiting.curl};
+	// }
 };
 
 template <typename T> auto get_scheduler() -> T & {

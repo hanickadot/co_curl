@@ -19,7 +19,7 @@ auto fetch(std::string url) -> co_curl::task<std::string> {
 		co_return "";
 	}
 
-	std::cout << "| " << url << " downloaded\n";
+	std::cout << "| " << url << " downloaded (size = " << output.size() << ")\n";
 	co_return output;
 }
 
@@ -30,7 +30,7 @@ auto download_two() -> co_curl::task<std::string> {
 
 	std::cout << "1 download_two: after first\n";
 
-	auto b = fetch("https://www.google.com/");
+	auto b = fetch("https://nimue.cz/");
 
 	std::cout << "1 download_two: after second\n";
 

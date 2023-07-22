@@ -49,27 +49,10 @@ template <typename Promise> concept promise_with_scheduler = requires(Promise & 
 	{ promise.scheduler };
 };
 
-template <promise_with_scheduler Promise> struct never_suspend_and_mark_root {
-	Promise & promise;
-
-	never_suspend_and_mark_root(Promise & pr) noexcept: promise{pr} {
-		promise.scheduler.start();
-	}
-
-	constexpr bool await_ready() const noexcept { return true; }
-	constexpr void await_resume() const noexcept { }
-	constexpr void await_suspend(std::coroutine_handle<>) {
-		// will never be called
-		assert(false);
-	}
-};
-
 template <promise_with_scheduler Promise> struct suspend_and_schedule_next {
 	Promise & promise;
 
-	suspend_and_schedule_next(Promise & pr) noexcept: promise{pr} {
-		promise.scheduler.finish();
-	}
+	suspend_and_schedule_next(Promise & pr) noexcept: promise{pr} { }
 
 	constexpr bool await_ready() const noexcept { return false; }
 	constexpr void await_resume() const noexcept { }
@@ -77,10 +60,13 @@ template <promise_with_scheduler Promise> struct suspend_and_schedule_next {
 		// TODO: if there is multiple awaiters, we want to let know scheduler
 
 		if (promise.awaiter) {
-			return promise.scheduler.schedule_now(promise.awaiter);
+			// std::cout << "  [has awaiter]\n";
+			return promise.scheduler.task_ready(promise.awaiter);
+		} else {
+			std::cout << "  \n";
 		}
 
-		return promise.scheduler.schedule_next();
+		return promise.scheduler.next_coroutine();
 	}
 };
 
@@ -98,10 +84,12 @@ template <typename R, typename Scheduler> struct promise_type: internal::promise
 
 	// all my tasks are immediate
 	constexpr auto initial_suspend() noexcept {
-		return never_suspend_and_mark_root(*this);
+		scheduler.start();
+		return std::suspend_never();
 	};
 
 	constexpr auto final_suspend() noexcept {
+		scheduler.finish();
 		return suspend_and_schedule_next(*this);
 	};
 
@@ -111,7 +99,16 @@ template <typename R, typename Scheduler> struct promise_type: internal::promise
 
 	// pass all transformations to scheduler
 	template <typename T> constexpr auto await_transform(T && something) {
-		return scheduler.await_differently_on(self(), something);
+		if constexpr (scheduler_transforms<Scheduler, promise_type &, T>) {
+			return scheduler.transform(*this, something);
+		} else {
+			return std::forward<T>(something);
+		}
+	}
+
+	constexpr auto await_transform(co_curl::perform perf) noexcept {
+		// transform all easy_curl performs into lazy multi-performs
+		return co_curl::perform_later(scheduler, perf.handle);
 	}
 
 	constexpr auto get_awaiter() const noexcept {
@@ -127,7 +124,7 @@ template <typename R, typename Scheduler> struct promise_type: internal::promise
 			awaiter = other;
 		}
 
-		return scheduler.do_something_else();
+		return scheduler.next_coroutine();
 	}
 };
 
@@ -183,6 +180,7 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct ta
 	}
 
 	bool await_ready() const noexcept {
+		handle.promise().scheduler.before_sleep();
 		assert(handle != nullptr);
 		return handle.done();
 	}
@@ -192,10 +190,12 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct ta
 	}
 
 	auto await_resume() & noexcept {
+		handle.promise().scheduler.after_wakeup();
 		return get_result_without_finishing();
 	}
 
 	auto await_resume() && noexcept {
+		handle.promise().scheduler.after_wakeup();
 		return get_result_without_finishing();
 	}
 };

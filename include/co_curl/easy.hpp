@@ -104,22 +104,6 @@ struct perform {
 	constexpr int await_resume() const noexcept {
 		return result;
 	}
-
-	struct lazy_perform {
-		bool result{true}; // FIXME provide correct result
-
-		constexpr bool await_ready() noexcept {
-			return false;
-		}
-
-		template <typename T> constexpr auto await_suspend(std::coroutine_handle<T> caller) {
-			return std::noop_coroutine();
-		}
-
-		constexpr int await_resume() const noexcept {
-			return result;
-		}
-	};
 };
 
 } // namespace co_curl

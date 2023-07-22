@@ -2,6 +2,7 @@
 #define CO_CURL_MULTI_HPP
 
 #include "easy.hpp"
+#include <iostream>
 #include <span>
 #include <string>
 #include <string_view>
@@ -62,6 +63,28 @@ struct multi_handle {
 	auto info_read() noexcept -> std::optional<message> {
 		[[maybe_unused]] unsigned remaining = 0;
 		return info_read(remaining);
+	}
+};
+
+template <typename Scheduler> struct perform_later {
+	Scheduler & scheduler;
+	easy_handle & easy;
+	bool result{true}; // FIXME provide correct result
+
+	perform_later(Scheduler & sch, easy_handle & h) noexcept: scheduler{sch}, easy{h} { }
+
+	constexpr bool await_ready() noexcept {
+		scheduler.before_sleep();
+		return false;
+	}
+
+	template <typename T> constexpr auto await_suspend(std::coroutine_handle<T> caller) {
+		return scheduler.schedule_later(caller, easy);
+	}
+
+	constexpr int await_resume() const noexcept {
+		scheduler.after_wakeup();
+		return result;
 	}
 };
 
