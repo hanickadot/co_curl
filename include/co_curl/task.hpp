@@ -62,8 +62,6 @@ template <promise_with_scheduler Promise> struct suspend_and_schedule_next {
 		if (promise.awaiter) {
 			// std::cout << "  [has awaiter]\n";
 			return promise.scheduler.task_ready(promise.awaiter);
-		} else {
-			std::cout << "  \n";
 		}
 
 		return promise.scheduler.next_coroutine();
@@ -106,7 +104,7 @@ template <typename R, typename Scheduler> struct promise_type: internal::promise
 		}
 	}
 
-	constexpr auto await_transform(co_curl::perform perf) noexcept {
+	constexpr auto await_transform(co_curl::perform perf) {
 		// transform all easy_curl performs into lazy multi-performs
 		return co_curl::perform_later(scheduler, perf.handle);
 	}
