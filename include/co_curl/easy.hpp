@@ -22,12 +22,12 @@ struct easy_handle {
 	constexpr easy_handle(easy_handle && other) noexcept: native_handle{std::exchange(other.native_handle, nullptr)} { }
 
 	// helper constructors
-	easy_handle(const char * url): easy_handle() {
-		set_url(url);
+	easy_handle(const char * u): easy_handle() {
+		url(u);
 	}
 
-	easy_handle(const std::string & url): easy_handle() {
-		set_url(url);
+	easy_handle(const std::string & u): easy_handle() {
+		url(u);
 	}
 
 	// destructor
@@ -47,15 +47,23 @@ struct easy_handle {
 	bool sync_perform() noexcept;
 
 	// setters
-	void set_url(const char * url);
-	void set_url(const std::string & url) { set_url(url.c_str()); }
+	void url(const char * u);
+	void url(const std::string & u) { url(u.c_str()); }
 
-	void set_verbose(bool enable = true) noexcept;
+	void verbose(bool enable = true) noexcept;
+	void pipewait(bool enable = true) noexcept;
 
-	void set_write_function(size_t (*)(char *, size_t, size_t, void *)) noexcept;
-	void set_write_data(void *) noexcept;
+	void write_function(size_t (*)(char *, size_t, size_t, void *)) noexcept;
+	void write_data(void *) noexcept;
 
-	template <typename T, std::invocable<T> Fnc> void set_write_callback(Fnc & f) {
+	// getters
+	auto get_content_type() const noexcept -> std::optional<std::string_view>;
+	auto get_content_length() const noexcept -> std::optional<size_t>;
+	auto get_response_code() const noexcept -> unsigned;
+
+	// extended callbacks
+
+	template <typename T, std::invocable<T> Fnc> void write_callback(Fnc & f) {
 		using value_type = typename T::value_type;
 
 		const auto helper = +[](char * in, size_t, size_t nmemb, void * udata) -> size_t {
@@ -69,16 +77,33 @@ struct easy_handle {
 			}
 		};
 
-		set_write_function(helper);
-		set_write_data(&f);
+		write_function(helper);
+		write_data(&f);
 	}
 
-	template <std::invocable<std::string_view> Fnc> void set_write_callback(Fnc & f) {
-		set_write_callback<std::string_view>(f);
+	template <std::invocable<std::string_view> Fnc> void write_callback(Fnc & f) {
+		write_callback<std::string_view>(f);
 	}
 
-	template <std::invocable<std::span<const std::byte>> Fnc> void set_write_callback(Fnc & f) {
-		set_write_callback<std::span<const std::byte>>(f);
+	template <std::invocable<std::span<const std::byte>> Fnc> void write_callback(Fnc & f) {
+		write_callback<std::span<const std::byte>>(f);
+	}
+
+	template <typename T> void write_into(T & out) {
+		using value_type = typename T::value_type;
+		static_assert(sizeof(value_type) == sizeof(char));
+
+		write_function(+[](char * in, size_t, size_t nmemb, void * udata) -> size_t {
+			T & o = *static_cast<T *>(udata);
+
+			const auto * ptr = reinterpret_cast<const value_type *>(const_cast<const char *>(in));
+
+			std::copy(ptr, ptr + nmemb, std::back_inserter(o));
+
+			return nmemb;
+		});
+
+		write_data(&out);
 	}
 
 	// getters

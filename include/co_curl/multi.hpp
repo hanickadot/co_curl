@@ -74,7 +74,6 @@ template <typename Scheduler> struct perform_later {
 	perform_later(Scheduler & sch, easy_handle & h) noexcept: scheduler{sch}, easy{h} { }
 
 	constexpr bool await_ready() noexcept {
-		scheduler.before_sleep();
 		return false;
 	}
 
@@ -83,7 +82,6 @@ template <typename Scheduler> struct perform_later {
 	}
 
 	constexpr int await_resume() const noexcept {
-		scheduler.after_wakeup();
 		return result;
 	}
 };

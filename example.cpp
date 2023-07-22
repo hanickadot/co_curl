@@ -6,12 +6,8 @@ auto fetch(std::string url) -> co_curl::task<std::string> {
 
 	std::string output;
 
-	auto write = [&](std::string_view data) {
-		output += data;
-	};
-
-	// handle.set_verbose();
-	handle.set_write_callback(write);
+	handle.write_into(output);
+	handle.pipewait();
 
 	std::cout << "| downloading " << url << "...\n";
 
@@ -19,7 +15,15 @@ auto fetch(std::string url) -> co_curl::task<std::string> {
 		co_return "";
 	}
 
-	std::cout << "| " << url << " downloaded (size = " << output.size() << ")\n";
+	std::cout << "| " << url << " downloaded (size = " << output.size();
+
+	std::cout << ", response-code: " << handle.get_response_code();
+
+	if (auto mime_type = handle.get_content_type()) {
+		std::cout << ", mime-type: " << *mime_type;
+	}
+
+	std::cout << ")\n";
 	co_return output;
 }
 
@@ -30,7 +34,7 @@ auto download_two() -> co_curl::task<std::string> {
 
 	std::cout << "1 download_two: after first\n";
 
-	auto b = fetch("https://nimue.cz/");
+	auto b = fetch("https://compile-time.re/");
 
 	std::cout << "1 download_two: after second\n";
 
@@ -48,7 +52,7 @@ auto download_two_b() -> co_curl::task<std::string> {
 
 	std::cout << "2 download_two: after first\n";
 
-	auto b = fetch("https://talks.cpp.fail/");
+	auto b = fetch("https://talks.cpp.fail/cppnow-2023-lightning-updates/");
 
 	std::cout << "2 download_two: after second\n";
 

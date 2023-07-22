@@ -105,11 +105,11 @@ struct task_counter {
 		--tasks_in_running;
 	}
 
-	void before_sleep() noexcept {
+	void blocked() noexcept {
 		++tasks_blocked;
 	}
 
-	void after_wakeup() noexcept {
+	void unblocked() noexcept {
 		--tasks_blocked;
 	}
 
@@ -118,7 +118,9 @@ struct task_counter {
 	}
 
 	void print() const noexcept {
-		std::cout << "tasks: " << tasks_in_running << ", blocked: " << tasks_blocked;
+		std::cout << "tasks: " << tasks_in_running;
+
+		std::cout << ", sleeping: " << tasks_blocked;
 
 		if (graph_blocked()) {
 			std::cout << " [blocked]";
@@ -132,43 +134,38 @@ struct default_scheduler: task_counter {
 	coroutine_handle_queue ready{};
 	waiting_coroutines_for_curl_finished waiting{};
 
-	auto task_ready(std::coroutine_handle<> h) noexcept -> std::coroutine_handle<> {
-		return next_coroutine(h);
-	}
-
 	auto schedule_later(std::coroutine_handle<> h, co_curl::easy_handle & curl) -> std::coroutine_handle<> {
 		waiting.insert(curl, h);
-		return next_coroutine();
+		task_counter::blocked();
+		return select_next_coroutine();
 	}
 
-	auto next_coroutine(std::coroutine_handle<> immediate_awaiter = {}) -> std::coroutine_handle<> {
-		// task_counter::print();
+	auto suspend() -> std::coroutine_handle<> {
+		task_counter::blocked();
+		return select_next_coroutine();
+	}
 
+	auto select_next_coroutine(std::coroutine_handle<> immediate_awaiter = {}) -> std::coroutine_handle<> {
 		if (immediate_awaiter) {
 			// std::cout << "[immediate awaiter]\n";
+			task_counter::unblocked();
 			return immediate_awaiter;
-			// TODO add queue
 		} else if (auto next_ready = ready.take_one()) {
 			// std::cout << "[next_ready]\n";
+			task_counter::unblocked();
 			return next_ready;
 
 		} else if (task_counter::graph_blocked()) {
 			// std::cout << "[blocked]\n";
 			if (auto next_completed = waiting.complete_something()) {
 				// std::cout << " [completed]\n";
+				task_counter::unblocked();
 				return next_completed;
-			} else {
-				// std::cout << "nothing to complete!\n";
 			}
 		}
 		// std::cout << "------\n";
 		return std::noop_coroutine();
 	}
-
-	// template <typename Promise> auto transform(Promise & promise, co_curl::perform perf) const {
-	//	// transform blocking perform into lazy one
-	//	return co_curl::perform_later{.easy = perf.handle, .multi = promise.scheduler.waiting.curl};
-	// }
 };
 
 template <typename T> auto get_scheduler() -> T & {

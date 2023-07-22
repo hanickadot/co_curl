@@ -58,13 +58,7 @@ template <promise_with_scheduler Promise> struct suspend_and_schedule_next {
 	constexpr void await_resume() const noexcept { }
 	constexpr auto await_suspend(std::coroutine_handle<Promise>) {
 		// TODO: if there is multiple awaiters, we want to let know scheduler
-
-		if (promise.awaiter) {
-			// std::cout << "  [has awaiter]\n";
-			return promise.scheduler.task_ready(promise.awaiter);
-		}
-
-		return promise.scheduler.next_coroutine();
+		return promise.scheduler.select_next_coroutine(promise.awaiter);
 	}
 };
 
@@ -122,7 +116,7 @@ template <typename R, typename Scheduler> struct promise_type: internal::promise
 			awaiter = other;
 		}
 
-		return scheduler.next_coroutine();
+		return scheduler.suspend();
 	}
 };
 
@@ -166,7 +160,6 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct ta
 	}
 
 	bool await_ready() const noexcept {
-		handle.promise().scheduler.before_sleep();
 		assert(handle != nullptr);
 		return handle.done();
 	}
@@ -176,12 +169,10 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct ta
 	}
 
 	auto await_resume() & noexcept {
-		handle.promise().scheduler.after_wakeup();
 		return get_result_without_finishing(*this);
 	}
 
 	auto await_resume() && noexcept {
-		handle.promise().scheduler.after_wakeup();
 		return get_result_without_finishing(*this);
 	}
 };
