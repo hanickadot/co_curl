@@ -1,21 +1,22 @@
 #ifndef CO_CURL_EASY_HPP
 #define CO_CURL_EASY_HPP
 
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
 #include <coroutine>
 #include <cstddef>
 
-namespace co_curl {
-
 using CURL = void;
+
+namespace co_curl {
 
 struct easy_handle {
 	CURL * native_handle;
 
 	// constructors
-	constexpr easy_handle(std::nullptr_t) noexcept: native_handle{nullptr} { }
+	explicit constexpr easy_handle(std::nullptr_t) noexcept: native_handle{nullptr} { }
 	easy_handle();
 	easy_handle(const easy_handle &) = delete;
 	constexpr easy_handle(easy_handle && other) noexcept: native_handle{std::exchange(other.native_handle, nullptr)} { }
@@ -54,7 +55,7 @@ struct easy_handle {
 	void set_write_function(size_t (*)(char *, size_t, size_t, void *)) noexcept;
 	void set_write_data(void *) noexcept;
 
-	template <typename T = std::string_view, std::invocable<T> Fnc> void set_write_callback(Fnc & f) {
+	template <typename T, std::invocable<T> Fnc> void set_write_callback(Fnc & f) {
 		using value_type = typename T::value_type;
 
 		const auto helper = +[](char * in, size_t, size_t nmemb, void * udata) -> size_t {
@@ -70,6 +71,14 @@ struct easy_handle {
 
 		set_write_function(helper);
 		set_write_data(&f);
+	}
+
+	template <std::invocable<std::string_view> Fnc> void set_write_callback(Fnc & f) {
+		set_write_callback<std::string_view>(f);
+	}
+
+	template <std::invocable<std::span<const std::byte>> Fnc> void set_write_callback(Fnc & f) {
+		set_write_callback<std::span<const std::byte>>(f);
 	}
 
 	// getters
@@ -95,6 +104,22 @@ struct perform {
 	constexpr int await_resume() const noexcept {
 		return result;
 	}
+
+	struct lazy_perform {
+		bool result{true}; // FIXME provide correct result
+
+		constexpr bool await_ready() noexcept {
+			return false;
+		}
+
+		template <typename T> constexpr auto await_suspend(std::coroutine_handle<T> caller) {
+			return std::noop_coroutine();
+		}
+
+		constexpr int await_resume() const noexcept {
+			return result;
+		}
+	};
 };
 
 } // namespace co_curl

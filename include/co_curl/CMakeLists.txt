@@ -11,7 +11,7 @@ find_package(CURL REQUIRED)
 configure_file(version.cpp.in ${CMAKE_CURRENT_BINARY_DIR}/version.cpp)
 
 target_sources(co_curl PUBLIC co_curl.hpp easy.hpp multi.hpp scheduler.hpp task.hpp)
-target_sources(co_curl PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/version.cpp easy.cpp)
+target_sources(co_curl PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/version.cpp easy.cpp multi.cpp)
 
 target_include_directories(co_curl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/.. co_curl PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 

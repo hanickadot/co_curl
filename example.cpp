@@ -7,7 +7,6 @@ auto fetch(std::string url) -> co_curl::task<std::string> {
 	std::string output;
 
 	auto write = [&](std::string_view data) {
-		std::cout << "| incoming data: " << data.size() << "\n";
 		output += data;
 	};
 
@@ -21,29 +20,52 @@ auto fetch(std::string url) -> co_curl::task<std::string> {
 	}
 
 	std::cout << "| " << url << " downloaded\n";
-
 	co_return output;
 }
 
 auto download_two() -> co_curl::task<std::string> {
-	std::cout << "download_two: start\n";
+	std::cout << "1 download_two: start\n";
 
 	auto a = fetch("https://hanicka.net/");
 
-	std::cout << "download_two: after first\n";
+	std::cout << "1 download_two: after first\n";
 
 	auto b = fetch("https://www.google.com/");
 
-	std::cout << "download_two: after second\n";
+	std::cout << "1 download_two: after second\n";
 
 	auto r = co_await a + co_await b;
 
-	std::cout << "download_two: after finish\n";
+	std::cout << "1 download_two: after finish\n";
 
 	co_return r;
 }
 
+auto download_two_b() -> co_curl::task<std::string> {
+	std::cout << "2 download_two: start\n";
+
+	auto a = fetch("https://hanickadot.github.io/");
+
+	std::cout << "2 download_two: after first\n";
+
+	auto b = fetch("https://talks.cpp.fail/");
+
+	std::cout << "2 download_two: after second\n";
+
+	auto r = co_await a + co_await b;
+
+	std::cout << "2 download_two: after finish\n";
+
+	co_return r;
+}
+
+auto download_four() -> co_curl::task<std::string> {
+	auto a = download_two();
+	auto b = download_two_b();
+	co_return co_await a + co_await b;
+}
+
 int main() {
-	const std::string r = download_two();
+	const std::string r = download_four();
 	std::cout << r.size() << "\n";
 }
