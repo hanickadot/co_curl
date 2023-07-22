@@ -126,6 +126,10 @@ struct perform {
 		return false;
 	}
 
+	explicit operator bool() {
+		return handle.sync_perform();
+	}
+
 	template <typename T> constexpr auto await_suspend(std::coroutine_handle<T> caller) {
 		result = handle.sync_perform();
 		return caller; // resume current coroutine (I know I can do it with return bool(false), but this is more explicit)

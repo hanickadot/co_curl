@@ -12,7 +12,7 @@ auto fetch(std::string url) -> co_curl::task<std::string> {
 
 	std::cout << "| downloading " << url << "...\n";
 
-	if (!co_await co_curl::perform(handle)) {
+	if (!co_await handle.perform()) {
 		co_return "";
 	}
 
