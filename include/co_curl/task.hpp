@@ -58,6 +58,7 @@ template <promise_with_scheduler Promise> struct suspend_and_schedule_next {
 	constexpr void await_resume() const noexcept { }
 	constexpr auto await_suspend(std::coroutine_handle<Promise>) {
 		// TODO: if there is multiple awaiters, we want to let know scheduler
+		promise.scheduler.wakeup_coroutines_waiting_for(promise.self());
 		return promise.scheduler.select_next_coroutine(promise.awaiter);
 	}
 };
@@ -109,14 +110,12 @@ template <typename R, typename Scheduler> struct promise_type: internal::promise
 
 	template <typename T> auto someone_is_waiting_on_me(std::coroutine_handle<T> other) -> std::coroutine_handle<> {
 		if (awaiter) {
-			// scheduler.set_additional_awaiters(self(), other);
-			// scheduler.set_additional_awaiters(self(), other);
-			assert(false);
+			return scheduler.suspend_additional_awaiter(self(), other);
+			// scheduler.suspend_and_wait_fo(other);
 		} else {
 			awaiter = other;
+			return scheduler.suspend();
 		}
-
-		return scheduler.suspend();
 	}
 };
 
@@ -135,20 +134,26 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct ta
 		}
 	}
 
-	template <typename Task> friend auto get_result_without_finishing(Task && self) {
-		assert(self.handle != nullptr);
-		assert(self.handle.done());
-		return self.handle.promise().get_result();
+	auto get_result_without_finishing() & {
+		assert(handle != nullptr);
+		assert(handle.done());
+		return handle.promise().get_result();
+	}
+
+	auto get_result_without_finishing() && {
+		assert(handle != nullptr);
+		assert(handle.done());
+		return std::move(handle.promise()).get_result();
 	}
 
 	auto get_result() & noexcept {
 		finish();
-		return get_result_without_finishing(*this);
+		return get_result_without_finishing();
 	}
 
 	auto get_result() && noexcept {
 		finish();
-		return get_result_without_finishing(*this);
+		return get_result_without_finishing();
 	}
 
 	operator R() & noexcept {
@@ -169,11 +174,11 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct ta
 	}
 
 	auto await_resume() & noexcept {
-		return get_result_without_finishing(*this);
+		return get_result_without_finishing();
 	}
 
 	auto await_resume() && noexcept {
-		return get_result_without_finishing(*this);
+		return get_result_without_finishing();
 	}
 };
 

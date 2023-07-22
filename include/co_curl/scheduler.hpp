@@ -133,6 +133,7 @@ struct task_counter {
 struct default_scheduler: task_counter {
 	coroutine_handle_queue ready{};
 	waiting_coroutines_for_curl_finished waiting{};
+	std::multimap<std::coroutine_handle<>, std::coroutine_handle<>> waiting_for_someone_else{};
 
 	auto schedule_later(std::coroutine_handle<> h, co_curl::easy_handle & curl) -> std::coroutine_handle<> {
 		waiting.insert(curl, h);
@@ -165,6 +166,19 @@ struct default_scheduler: task_counter {
 		}
 		// std::cout << "------\n";
 		return std::noop_coroutine();
+	}
+
+	void wakeup_coroutines_waiting_for(std::coroutine_handle<> awaited) {
+		const auto [f, l] = waiting_for_someone_else.equal_range(awaited);
+
+		for (auto it = f; it != l; it = waiting_for_someone_else.erase(it)) {
+			ready.insert(it->second);
+		}
+	}
+
+	auto suspend_additional_awaiter(std::coroutine_handle<> awaited, std::coroutine_handle<> sleeping) {
+		waiting_for_someone_else.emplace(awaited, sleeping);
+		return suspend();
 	}
 };
 
