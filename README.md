@@ -1,3 +1,6 @@
 # co_curl
 
-`What we’ve been awaiting for`
+(RAII + coroutine C++ wrapper over [libcurl](https://curl.se/libcurl/))
+
+Don't use this unless you know what you are doing. This project is WIP.
+
