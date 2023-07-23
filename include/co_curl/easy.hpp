@@ -3,6 +3,7 @@
 
 #include "list.hpp"
 #include <iostream>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
