@@ -12,6 +12,8 @@ namespace co_curl {
 auto version() noexcept -> std::string_view;
 auto curl_version() noexcept -> std::string_view;
 
+void global_init() noexcept;
+
 } // namespace co_curl
 
 #endif

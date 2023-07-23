@@ -5,7 +5,7 @@ auto fetch(std::string url) -> co_curl::task<bool> {
 
 	handle.write_nowhere();
 
-	co_return co_await handle.perform();
+	co_return bool(co_await handle.perform());
 }
 
 int main() {

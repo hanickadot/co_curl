@@ -105,10 +105,6 @@ template <typename R, typename Scheduler> struct promise_type: internal::promise
 		return co_curl::perform_later(scheduler, perf.handle);
 	}
 
-	constexpr auto get_awaiter() const noexcept {
-		return awaiter;
-	}
-
 	template <typename T> auto someone_is_waiting_on_me(std::coroutine_handle<T> other) -> std::coroutine_handle<> {
 		if (awaiter) {
 			return scheduler.suspend_additional_awaiter(self(), other);

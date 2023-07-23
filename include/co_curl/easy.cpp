@@ -2,6 +2,15 @@
 #include "out_ptr.hpp"
 #include <curl/curl.h>
 
+co_curl::result::operator bool() const noexcept {
+	return code == CURLE_OK;
+}
+
+std::string_view co_curl::result::string() const noexcept {
+	static_assert(sizeof(CURLcode) == sizeof(code));
+	return std::string_view(curl_easy_strerror(static_cast<CURLcode>(code)));
+}
+
 co_curl::easy_handle::easy_handle(): native_handle{curl_easy_init()} { }
 
 co_curl::easy_handle::~easy_handle() noexcept {
@@ -20,9 +29,9 @@ void co_curl::easy_handle::reset() noexcept {
 	curl_easy_reset(native_handle);
 }
 
-bool co_curl::easy_handle::sync_perform() noexcept {
+auto co_curl::easy_handle::sync_perform() noexcept -> result {
 	// TODO do something with return code
-	return CURLE_OK == curl_easy_perform(native_handle);
+	return result{.code = curl_easy_perform(native_handle)};
 }
 
 auto co_curl::easy_handle::perform() noexcept -> co_curl::perform {
@@ -45,12 +54,49 @@ void co_curl::easy_handle::fresh_connect(bool enable) noexcept {
 	curl_easy_setopt(native_handle, CURLOPT_FRESH_CONNECT, static_cast<long>(enable));
 }
 
+void co_curl::easy_handle::upload(bool enable) noexcept {
+	curl_easy_setopt(native_handle, CURLOPT_UPLOAD, static_cast<long>(enable));
+}
+
+void co_curl::easy_handle::infile_size(size_t size) noexcept {
+	// static_assert(size_of(curl_off_t) == size_of(size_t));
+	curl_easy_setopt(native_handle, CURLOPT_INFILESIZE_LARGE, static_cast<curl_off_t>(size));
+}
+
+void co_curl::easy_handle::prequote(list & lst) noexcept {
+	curl_easy_setopt(native_handle, CURLOPT_PREQUOTE, lst.data);
+}
+
+void co_curl::easy_handle::quote(list & lst) noexcept {
+	curl_easy_setopt(native_handle, CURLOPT_QUOTE, lst.data);
+}
+
+void co_curl::easy_handle::postquote(list & lst) noexcept {
+	curl_easy_setopt(native_handle, CURLOPT_POSTQUOTE, lst.data);
+}
+
+void co_curl::easy_handle::username(const char * in) noexcept {
+	curl_easy_setopt(native_handle, CURLOPT_USERNAME, in);
+}
+
+void co_curl::easy_handle::password(const char * in) noexcept {
+	curl_easy_setopt(native_handle, CURLOPT_PASSWORD, in);
+}
+
 void co_curl::easy_handle::write_function(size_t (*f)(char *, size_t, size_t, void *)) noexcept {
 	curl_easy_setopt(native_handle, CURLOPT_WRITEFUNCTION, f);
 }
 
 void co_curl::easy_handle::write_data(void * udata) noexcept {
 	curl_easy_setopt(native_handle, CURLOPT_WRITEDATA, udata);
+}
+
+void co_curl::easy_handle::read_function(size_t (*f)(char *, size_t, size_t, void *)) noexcept {
+	curl_easy_setopt(native_handle, CURLOPT_READFUNCTION, f);
+}
+
+void co_curl::easy_handle::read_data(void * udata) noexcept {
+	curl_easy_setopt(native_handle, CURLOPT_READDATA, udata);
 }
 
 auto co_curl::easy_handle::get_content_type() const noexcept -> std::optional<std::string_view> {
