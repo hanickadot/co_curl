@@ -1,4 +1,5 @@
 #include "list.hpp"
+#include <exception>
 #include <curl/curl.h>
 
 // accessing internals of the CURL library (don't do that)
