@@ -2,6 +2,7 @@
 #define CO_CURL_SCHEDULER_HPP
 
 #include "easy.hpp"
+#include "multi.hpp"
 #include "task_counter.hpp"
 #include <iostream>
 #include <map>
