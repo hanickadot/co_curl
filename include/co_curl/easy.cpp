@@ -91,6 +91,10 @@ void co_curl::easy_handle::password(const char * in) noexcept {
 	curl_easy_setopt(native_handle, CURLOPT_PASSWORD, in);
 }
 
+void co_curl::easy_handle::ssl_verify_peer(bool enable) noexcept {
+	curl_easy_setopt(native_handle, CURLOPT_SSL_VERIFYPEER, static_cast<long>(enable));
+}
+
 void co_curl::easy_handle::write_function(size_t (*f)(char *, size_t, size_t, void *)) noexcept {
 	curl_easy_setopt(native_handle, CURLOPT_WRITEFUNCTION, f);
 }

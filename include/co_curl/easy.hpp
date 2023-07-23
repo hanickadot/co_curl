@@ -79,6 +79,7 @@ struct easy_handle {
 	void quote(list & lst) noexcept;
 	void postquote(list & lst) noexcept;
 	void http_headers(list & lst) noexcept;
+	void ssl_verify_peer(bool enable = false) noexcept; // explicitly false default
 
 	void username(const char *) noexcept;
 	void password(const char *) noexcept;
