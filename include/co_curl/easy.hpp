@@ -78,6 +78,7 @@ struct easy_handle {
 	void prequote(list & lst) noexcept;
 	void quote(list & lst) noexcept;
 	void postquote(list & lst) noexcept;
+	void http_headers(list & lst) noexcept;
 
 	void username(const char *) noexcept;
 	void password(const char *) noexcept;

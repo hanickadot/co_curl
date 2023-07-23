@@ -79,6 +79,10 @@ void co_curl::easy_handle::postquote(list & lst) noexcept {
 	curl_easy_setopt(native_handle, CURLOPT_POSTQUOTE, lst.data);
 }
 
+void co_curl::easy_handle::http_headers(list & lst) noexcept {
+	curl_easy_setopt(native_handle, CURLOPT_HTTPHEADER, lst.data);
+}
+
 void co_curl::easy_handle::username(const char * in) noexcept {
 	curl_easy_setopt(native_handle, CURLOPT_USERNAME, in);
 }
