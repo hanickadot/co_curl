@@ -1,6 +1,9 @@
 #ifndef CO_CURL_OUT_PTR_HPP
 #define CO_CURL_OUT_PTR_HPP
 
+#include <memory>
+#include <utility>
+
 namespace co_curl {
 
 struct non_owning {
