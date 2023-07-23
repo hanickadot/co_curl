@@ -68,7 +68,7 @@ auto upload(std::string name, std::string url, std::string username, std::string
 	if (r) {
 		std::cout << "Upload of '" << name << "' done.\n";
 	} else {
-		std::cout << "Upload of '" << name << "' failed (" << r.string() << ").\n";
+		std::cout << "Upload of '" << name << "' failed (" << r << ").\n";
 	}
 
 	co_return bool(r);

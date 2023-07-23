@@ -20,7 +20,10 @@ struct result {
 	int code;
 
 	explicit operator bool() const noexcept;
-	std::string_view string() const noexcept;
+
+	operator std::string_view() const noexcept;
+	const char * c_str() const noexcept;
+	friend std::ostream & operator<<(std::ostream & os, result r);
 };
 
 struct easy_handle {

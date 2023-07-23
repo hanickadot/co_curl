@@ -6,9 +6,17 @@ co_curl::result::operator bool() const noexcept {
 	return code == CURLE_OK;
 }
 
-std::string_view co_curl::result::string() const noexcept {
+co_curl::result::operator std::string_view() const noexcept {
+	return std::string_view(c_str());
+}
+
+const char * co_curl::result::c_str() const noexcept {
 	static_assert(sizeof(CURLcode) == sizeof(code));
-	return std::string_view(curl_easy_strerror(static_cast<CURLcode>(code)));
+	return curl_easy_strerror(static_cast<CURLcode>(code));
+}
+
+std::ostream & co_curl::operator<<(std::ostream & os, co_curl::result r) {
+	return os << r.c_str();
 }
 
 co_curl::easy_handle::easy_handle(): native_handle{curl_easy_init()} { }
