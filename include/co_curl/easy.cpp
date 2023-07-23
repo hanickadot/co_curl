@@ -15,10 +15,6 @@ const char * co_curl::result::c_str() const noexcept {
 	return curl_easy_strerror(static_cast<CURLcode>(code));
 }
 
-std::ostream & co_curl::operator<<(std::ostream & os, co_curl::result r) {
-	return os << r.c_str();
-}
-
 co_curl::easy_handle::easy_handle(): native_handle{curl_easy_init()} { }
 
 co_curl::easy_handle::~easy_handle() noexcept {

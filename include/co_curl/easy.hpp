@@ -25,7 +25,9 @@ struct result {
 
 	operator std::string_view() const noexcept;
 	const char * c_str() const noexcept;
-	friend std::ostream & operator<<(std::ostream & os, result r);
+	friend inline std::ostream & operator<<(std::ostream & os, result r) {
+		return os << r.c_str();
+	}
 };
 
 struct easy_handle {

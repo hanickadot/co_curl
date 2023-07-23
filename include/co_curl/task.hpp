@@ -57,7 +57,7 @@ template <promise_with_scheduler Promise> struct suspend_and_schedule_next {
 
 	constexpr bool await_ready() const noexcept { return false; }
 	constexpr void await_resume() const noexcept { }
-	constexpr auto await_suspend(std::coroutine_handle<Promise>) {
+	constexpr auto await_suspend(std::coroutine_handle<Promise>) noexcept {
 		// TODO: if there is multiple awaiters, we want to let know scheduler
 		promise.scheduler.wakeup_coroutines_waiting_for(promise.self());
 		return promise.scheduler.select_next_coroutine(promise.awaiter);

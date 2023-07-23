@@ -3,6 +3,7 @@
 #include <exception>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 
 auto load_file(std::filesystem::path path) -> co_curl::task<std::vector<char>> {
 	std::cout << "Loading file '" << path << "'...\n";
