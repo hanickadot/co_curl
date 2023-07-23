@@ -8,6 +8,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <cassert>
 #include <coroutine>
 #include <cstddef>
 
