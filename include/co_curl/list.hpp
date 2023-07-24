@@ -10,9 +10,9 @@ struct curl_slist;
 namespace co_curl {
 
 struct list {
-	struct curl_slist * data;
+	struct curl_slist * data{nullptr};
 
-	constexpr list() noexcept { }
+	constexpr list() noexcept = default;
 	list(const list &) = delete;
 	constexpr list(list && other) noexcept: data{std::exchange(other.data, nullptr)} { }
 
