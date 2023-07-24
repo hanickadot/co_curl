@@ -96,9 +96,9 @@ struct easy_handle {
 	void read_data(void *) noexcept;
 
 	// extended callbacks
-	template <typename T> void write_callback(std::invocable<T> auto & f) {
+	template <typename T, std::invocable<T> F> void write_callback(F & f) {
 		using value_type = typename T::value_type;
-		using fnc_t = decltype(f);
+		using fnc_t = F;
 
 		const auto helper = +[](char * in, size_t, size_t nmemb, void * udata) -> size_t {
 			const auto data = T(reinterpret_cast<const value_type *>(const_cast<const char *>(in)), nmemb);
