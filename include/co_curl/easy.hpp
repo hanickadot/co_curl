@@ -28,6 +28,8 @@ struct result {
 	friend inline std::ostream & operator<<(std::ostream & os, result r) {
 		return os << r.c_str();
 	}
+
+	bool is_partial_transfer() const noexcept;
 };
 
 struct easy_handle {
@@ -83,6 +85,8 @@ struct easy_handle {
 
 	void username(const char *) noexcept;
 	void password(const char *) noexcept;
+
+	void resume(size_t position, size_t total_size) noexcept;
 
 	// getters
 	auto get_content_type() const noexcept -> std::optional<std::string_view>;

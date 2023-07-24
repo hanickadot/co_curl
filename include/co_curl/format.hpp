@@ -6,6 +6,7 @@
 #include <span>
 #include <string_view>
 #include <charconv>
+#include <chrono>
 
 namespace co_curl {
 
@@ -62,7 +63,32 @@ struct data_amount {
 	friend auto operator<<(std::ostream & os, data_amount in) -> std::ostream & {
 		std::array<char, 32> buffer{};
 		const auto r = in.write_into(buffer);
-		return os << std::string_view(r.data(), r.size());
+		os.write(buffer.data(), r.size());
+		return os;
+	}
+};
+
+struct duration {
+	std::chrono::nanoseconds value;
+
+	friend auto operator<<(std::ostream & os, duration in) -> std::ostream & {
+		if (in.value < std::chrono::microseconds{2}) {
+			return os << std::chrono::duration_cast<std::chrono::nanoseconds>(in.value).count() << " ns";
+		} else if (in.value < std::chrono::milliseconds{2}) {
+			return os << std::chrono::duration_cast<std::chrono::microseconds>(in.value).count() << " us";
+		} else if (in.value < std::chrono::seconds{2}) {
+			return os << std::chrono::duration_cast<std::chrono::milliseconds>(in.value).count() << " ms";
+		} else if (in.value < std::chrono::minutes{2}) {
+			return os << std::chrono::duration_cast<std::chrono::seconds>(in.value).count() << " s";
+		} else if (in.value < std::chrono::hours{2}) {
+			const auto minutes = std::chrono::floor<std::chrono::minutes>(in.value);
+			const auto seconds = std::chrono::ceil<std::chrono::seconds>(in.value - minutes);
+			return os << minutes.count() << " min " << seconds.count() << " s";
+		} else {
+			const auto hours = std::chrono::floor<std::chrono::hours>(in.value);
+			const auto minutes = std::chrono::ceil<std::chrono::minutes>(in.value - hours);
+			return os << hours.count() << " h " << minutes.count() << " min";
+		}
 	}
 };
 

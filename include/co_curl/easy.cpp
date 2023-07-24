@@ -15,6 +15,10 @@ const char * co_curl::result::c_str() const noexcept {
 	return curl_easy_strerror(static_cast<CURLcode>(code));
 }
 
+bool co_curl::result::is_partial_transfer() const noexcept {
+	return code == CURLE_PARTIAL_FILE;
+}
+
 co_curl::easy_handle::easy_handle(): native_handle{curl_easy_init()} { }
 
 co_curl::easy_handle::~easy_handle() noexcept {
@@ -91,6 +95,11 @@ void co_curl::easy_handle::username(const char * in) noexcept {
 
 void co_curl::easy_handle::password(const char * in) noexcept {
 	curl_easy_setopt(native_handle, CURLOPT_PASSWORD, in);
+}
+
+void co_curl::easy_handle::resume(size_t position, size_t total_size) noexcept {
+	curl_easy_setopt(native_handle, CURLOPT_RESUME_FROM_LARGE, static_cast<curl_off_t>(position));
+	curl_easy_setopt(native_handle, CURLOPT_INFILESIZE_LARGE, static_cast<curl_off_t>(total_size));
 }
 
 void co_curl::easy_handle::ssl_verify_peer(bool enable) noexcept {
