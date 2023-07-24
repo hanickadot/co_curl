@@ -47,7 +47,7 @@ auto co_curl::multi_handle::sync_perform() -> std::optional<unsigned> {
 }
 
 bool co_curl::multi_handle::poll(std::chrono::milliseconds timeout) noexcept {
-#ifndef LIBCURL_BEFORE_NEEDED
+#ifdef LIBCURL_BEFORE_NEEDED
 	// maybe replace?
 	return CURLM_OK == curl_multi_wait(native_handle, nullptr, 0, static_cast<int>(timeout.count()), nullptr);
 #else
