@@ -8,6 +8,11 @@ endif()
 
 find_package(CURL REQUIRED)
 
+if (NOT ${CURL_VERSION_STRING} VERSION_GREATER_EQUAL "7.55")
+	message(WARNING "Some features of libcurl are not available!")
+	target_compile_definitions(co_curl PRIVATE LIBCURL_BEFORE_NEEDED)
+endif()
+
 configure_file(version.cpp.in ${CMAKE_CURRENT_BINARY_DIR}/version.cpp)
 
 target_sources(co_curl PUBLIC co_curl.hpp easy.hpp multi.hpp out_ptr.hpp scheduler.hpp task_counter.hpp task.hpp zstring.hpp format.hpp list.hpp function.hpp)

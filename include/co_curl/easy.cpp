@@ -50,9 +50,11 @@ void co_curl::easy_handle::verbose(bool enable) noexcept {
 	curl_easy_setopt(native_handle, CURLOPT_VERBOSE, static_cast<long>(enable));
 }
 
+#ifndef LIBCURL_BEFORE_NEEDED
 void co_curl::easy_handle::pipewait(bool enable) noexcept {
 	curl_easy_setopt(native_handle, CURLOPT_PIPEWAIT, static_cast<long>(enable));
 }
+#endif
 
 void co_curl::easy_handle::fresh_connect(bool enable) noexcept {
 	curl_easy_setopt(native_handle, CURLOPT_FRESH_CONNECT, static_cast<long>(enable));
@@ -125,6 +127,7 @@ auto co_curl::easy_handle::get_content_type() const noexcept -> std::optional<st
 	return out.cast_to<std::string_view>();
 }
 
+#ifndef LIBCURL_BEFORE_NEEDED
 auto co_curl::easy_handle::get_content_length() const noexcept -> std::optional<size_t> {
 	curl_off_t cl{0};
 
@@ -134,6 +137,7 @@ auto co_curl::easy_handle::get_content_length() const noexcept -> std::optional<
 
 	return static_cast<size_t>(cl);
 }
+#endif
 
 auto co_curl::easy_handle::get_response_code() const noexcept -> unsigned {
 	long rc{0};
