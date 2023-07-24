@@ -149,7 +149,7 @@ struct default_scheduler: task_counter {
 	}
 
 	auto get_curl() -> multi_handle & {
-		return waiting_for_someone_else.curl;
+		return waiting.curl;
 	}
 };
 
