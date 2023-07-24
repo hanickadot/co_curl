@@ -147,9 +147,13 @@ struct default_scheduler: task_counter {
 		waiting_for_someone_else.emplace(awaited, sleeping);
 		return suspend();
 	}
+
+	auto get_curl() -> multi_handle & {
+		return waiting_for_someone_else.curl;
+	}
 };
 
-template <typename T> auto get_scheduler() -> T & {
+template <typename T = default_scheduler> auto get_scheduler() -> T & {
 	static T global_scheduler{};
 	return global_scheduler;
 }
