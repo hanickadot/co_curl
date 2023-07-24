@@ -27,6 +27,8 @@ template <typename T, typename... Args> constexpr auto to_chars(std::span<char> 
 struct data_amount {
 	size_t amount{0};
 
+	std::array<char, 32> instance_buffer{};
+
 	explicit(false) constexpr data_amount(std::same_as<size_t> auto n) noexcept: amount{n} { }
 
 	static constexpr auto add_to_buffer(std::span<char> buffer, std::span<const char> used, std::string_view text) noexcept -> std::span<const char> {
@@ -61,9 +63,8 @@ struct data_amount {
 	}
 
 	friend auto operator<<(std::ostream & os, data_amount in) -> std::ostream & {
-		std::array<char, 32> buffer{};
-		const auto r = in.write_into(buffer);
-		os.write(buffer.data(), r.size());
+		const auto r = in.write_into(in.instance_buffer);
+		os.write(r.data(), r.size());
 		return os;
 	}
 };
