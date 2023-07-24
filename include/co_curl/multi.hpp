@@ -64,6 +64,9 @@ struct multi_handle {
 		[[maybe_unused]] unsigned remaining = 0;
 		return info_read(remaining);
 	}
+
+	// options
+	void max_host_connection(unsigned n) noexcept;
 };
 
 template <typename Scheduler> struct perform_later {
