@@ -5,6 +5,7 @@
 #include <ostream>
 #include <span>
 #include <string_view>
+#include <cassert>
 #include <charconv>
 #include <chrono>
 
