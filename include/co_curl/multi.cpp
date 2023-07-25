@@ -73,7 +73,3 @@ auto co_curl::multi_handle::info_read(unsigned & msg_remaining) noexcept -> std:
 
 	std::terminate();
 }
-
-void co_curl::multi_handle::max_host_connections(unsigned count) noexcept {
-	curl_multi_setopt(native_handle, CURLMOPT_MAX_HOST_CONNECTIONS, static_cast<long>(count));
-}

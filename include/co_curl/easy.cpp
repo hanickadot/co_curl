@@ -97,9 +97,8 @@ void co_curl::easy_handle::password(const char * in) noexcept {
 	curl_easy_setopt(native_handle, CURLOPT_PASSWORD, in);
 }
 
-void co_curl::easy_handle::resume(size_t position, size_t total_size) noexcept {
+void co_curl::easy_handle::resume(size_t position) noexcept {
 	curl_easy_setopt(native_handle, CURLOPT_RESUME_FROM_LARGE, static_cast<curl_off_t>(position));
-	curl_easy_setopt(native_handle, CURLOPT_INFILESIZE_LARGE, static_cast<curl_off_t>(total_size));
 }
 
 void co_curl::easy_handle::ssl_verify_peer(bool enable) noexcept {

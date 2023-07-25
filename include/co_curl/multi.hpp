@@ -66,7 +66,6 @@ struct multi_handle {
 	}
 
 	// options
-	void max_host_connections(unsigned n) noexcept;
 };
 
 template <typename Scheduler> struct perform_later {
