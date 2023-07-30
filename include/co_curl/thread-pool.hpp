@@ -9,6 +9,7 @@
 #include <utility>
 #include <variant>
 #include <vector>
+#include <cassert>
 #include <coroutine>
 
 namespace co_curl {
