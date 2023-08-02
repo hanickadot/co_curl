@@ -15,17 +15,24 @@ namespace internal {
 		std::optional<T> result{std::nullopt};
 
 		constexpr void return_value(std::convertible_to<T> auto && r) {
-			result = T(std::forward<decltype(r)>(r));
+			// to avoid assign
+			std::destroy_at(&result);
+			new (&result) T(std::forward<decltype(r)>(r));
 		}
 
-		constexpr T & get() & noexcept {
+		constexpr T & ref() noexcept {
 			assert(result.has_value());
 			return *result;
 		}
 
-		constexpr T get() && noexcept {
+		constexpr const T & cref() noexcept {
 			assert(result.has_value());
-			return std::move(*result);
+			return *result;
+		}
+
+		constexpr T move() noexcept {
+			assert(result.has_value());
+			return *result;
 		}
 
 		auto unhandled_exception() noexcept {
@@ -36,7 +43,9 @@ namespace internal {
 	template <> struct promise_return<void> {
 		constexpr void return_void() noexcept { }
 
-		constexpr void get() noexcept { }
+		constexpr void ref() const noexcept { }
+		constexpr void cref() const noexcept { }
+		constexpr void move() const noexcept { }
 
 		auto unhandled_exception() noexcept {
 			std::terminate(); // todo remove
@@ -147,46 +156,46 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct ta
 		}
 	}
 
-	auto get_without_finishing() & {
+	decltype(auto) get_without_finishing() & {
 		assert(handle != nullptr);
 		assert(handle.done());
-		return handle.promise().get();
+		return handle.promise().ref();
 	}
 
-	auto get_without_finishing() const & {
+	decltype(auto) get_without_finishing() const & {
 		assert(handle != nullptr);
 		assert(handle.done());
-		return handle.promise().get();
+		return handle.promise().cref();
 	}
 
-	auto get_without_finishing() const && {
+	decltype(auto) get_without_finishing() const && requires std::copyable<R> {
 		assert(handle != nullptr);
 		assert(handle.done());
-		return std::move(handle.promise()).get();
+		return std::move(handle.promise()).move();
 	}
 
-	auto get_without_finishing() && {
+	decltype(auto) get_without_finishing() && {
 		assert(handle != nullptr);
 		assert(handle.done());
-		return std::move(handle.promise()).get();
+		return std::move(handle.promise()).ref();
 	}
 
-	auto get() & noexcept {
+	decltype(auto) get() & noexcept {
 		finish();
 		return get_without_finishing();
 	}
 
-	auto get() const & noexcept {
+	decltype(auto) get() const & noexcept {
 		finish();
 		return get_without_finishing();
 	}
 
-	auto get() && noexcept {
+	decltype(auto) get() && noexcept requires std::copyable<R> {
 		finish();
 		return get_without_finishing();
 	}
 
-	auto get() const && noexcept {
+	decltype(auto) get() const && noexcept {
 		finish();
 		return get_without_finishing();
 	}
@@ -208,19 +217,19 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct ta
 		return handle.promise().someone_is_waiting_on_me(awaiter);
 	}
 
-	auto await_resume() & noexcept {
+	decltype(auto) await_resume() & noexcept {
 		return get_without_finishing();
 	}
 
-	auto await_resume() && noexcept {
+	decltype(auto) await_resume() && noexcept {
 		return get_without_finishing();
 	}
 
-	auto await_resume() const & noexcept {
+	decltype(auto) await_resume() const & noexcept {
 		return get_without_finishing();
 	}
 
-	auto await_resume() const && noexcept {
+	decltype(auto) await_resume() const && noexcept requires std::copyable<R> {
 		return get_without_finishing();
 	}
 

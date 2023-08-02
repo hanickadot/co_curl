@@ -40,7 +40,7 @@ auto test(co_curl::thread_pool & tp) -> co_curl::detached_task<int> {
 
 int main() {
 	std::cout << "main()\n";
-	auto tp = co_curl::thread_pool{2};
+	auto tp = co_curl::thread_pool{1};
 
 	auto r = co_curl::sync_await(test(tp));
 	std::cout << "when job is done...\n";

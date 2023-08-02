@@ -30,14 +30,16 @@ template <typename T> struct function {
 		handle.destroy();
 	}
 
-	operator T() && noexcept {
-		return get();
-	}
-
-	T get() {
+	operator T() noexcept {
 		assert(handle);
 		assert(handle.done());
-		return handle.promise().get();
+		return handle.promise().move();
+	}
+
+	decltype(auto) get() && {
+		assert(handle);
+		assert(handle.done());
+		return handle.promise().move();
 	}
 };
 

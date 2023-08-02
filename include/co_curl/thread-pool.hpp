@@ -4,6 +4,7 @@
 #include <atomic>
 #include <functional>
 #include <future>
+#include <iostream>
 #include <queue>
 #include <thread>
 #include <utility>
@@ -70,6 +71,29 @@ struct thread_pool {
 			}
 		});
 	}
+};
+
+template <typename CoroType = void, typename... Args> struct give_me_coroutine_handle {
+	using promise_type = typename std::coroutine_traits<CoroType, Args...>::promise_type;
+	std::coroutine_handle<promise_type> handle{};
+
+	bool await_ready() const noexcept { return false; }
+	bool await_suspend(std::coroutine_handle<promise_type> h) noexcept {
+		handle = h;
+		return false;
+	}
+	auto await_resume() const noexcept {
+		return handle;
+	}
+};
+
+struct move_to_another_thread {
+	std::thread & th;
+	bool await_ready() const noexcept { return false; }
+	void await_suspend(std::coroutine_handle<> h) noexcept {
+		th = std::thread([h] { h.resume(); });
+	}
+	void await_resume() const noexcept { }
 };
 
 template <typename R> struct result_or_exception: std::variant<std::monostate, R, std::exception_ptr> {
@@ -157,6 +181,10 @@ template <typename R> struct detached_promise_type {
 
 	auto final_suspend() noexcept {
 		return suspend_or_jump_to_awaiter{};
+	}
+
+	void hello() {
+		std::cout << "hello\n";
 	}
 
 	template <std::convertible_to<R> T> void return_value(T && value) {
