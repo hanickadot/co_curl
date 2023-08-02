@@ -221,12 +221,20 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct ta
 		return handle.promise().someone_is_waiting_on_me(awaiter);
 	}
 
+	decltype(auto) get() & {
+		return handle.promise().result.ref();
+	}
+
 	decltype(auto) await_resume() & {
 		return handle.promise().result.ref();
 	}
 
 	template <typename Y> requires(std::same_as<Y, R> && !std::same_as<R, void>) operator Y &() & {
 		return handle.promise().result.ref();
+	}
+
+	decltype(auto) get() const & {
+		return handle.promise().result.cref();
 	}
 
 	decltype(auto) await_resume() const & {
@@ -237,6 +245,10 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct ta
 		return handle.promise().result.cref();
 	}
 
+	decltype(auto) get() && {
+		return handle.promise().result.move();
+	}
+
 	decltype(auto) await_resume() && {
 		return handle.promise().result.move();
 	}
@@ -245,6 +257,7 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct ta
 		return handle.promise().result.move();
 	}
 
+	void get() const && = delete;
 	void await_resume() const && = delete;
 
 	// support for streaming
