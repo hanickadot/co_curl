@@ -6,8 +6,8 @@
 
 namespace co_curl {
 
-template <typename T> concept ostreamable = requires(std::ostream & os, const T & val) {
-	{ os << val } -> std::same_as<std::ostream &>;
+template <typename T, typename Stream> concept ostreamable = requires(std::basic_ostream<Stream> & os, const T & val) {
+	{ os << val } -> std::same_as<std::basic_ostream<Stream> &>;
 };
 
 }

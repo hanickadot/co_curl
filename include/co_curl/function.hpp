@@ -33,13 +33,13 @@ template <typename T> struct function {
 	operator T() noexcept {
 		assert(handle);
 		assert(handle.done());
-		return handle.promise().move();
+		return handle.promise().result.move();
 	}
 
 	decltype(auto) get() && {
 		assert(handle);
 		assert(handle.done());
-		return handle.promise().move();
+		return handle.promise().result.move();
 	}
 };
 

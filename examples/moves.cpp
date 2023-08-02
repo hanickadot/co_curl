@@ -1,37 +1,55 @@
 #include <co_curl/co_curl.hpp>
 #include <exception>
 
-struct move_only_string: std::string {
-	using super = std::string;
-	move_only_string() noexcept: super{} { }
-	move_only_string(move_only_string && other) noexcept: super{std::move(other)} {};
+struct move_only_type {
+	move_only_type() noexcept { }
+	move_only_type(const move_only_type &) = delete;
+	move_only_type(move_only_type && other) noexcept {};
 
-	move_only_string & operator=(move_only_string && other) noexcept {
-		super::operator=(std::move(other));
+	move_only_type & operator=(move_only_type &&) noexcept {
 		return *this;
 	}
 
-	move_only_string & operator=(const move_only_string & other) noexcept = delete;
+	move_only_type & operator=(const move_only_type & other) noexcept = delete;
 };
 
-auto fetch(std::string url) -> co_curl::task<move_only_string> {
-	auto handle = co_curl::easy_handle{url};
-
-	move_only_string output{};
-
-	handle.write_into(output);
-
-	if (!co_await handle.perform()) {
-		throw std::runtime_error{"unable to download requested document"};
-	}
-
-	co_return output;
+auto test1() -> co_curl::task<move_only_type> {
+	move_only_type out{};
+	co_return out;
 }
 
-auto example() -> co_curl::task<move_only_string> {
-	co_return co_await fetch("https://hanicka.net");
+auto test2() -> co_curl::task<move_only_type> {
+	move_only_type out{};
+	co_return std::move(out);
+}
+
+// auto test3() -> co_curl::task<move_only_type> {
+//	const move_only_type out{};
+//	co_return out;
+// }
+//
+// auto test4() -> co_curl::task<move_only_type> {
+//	const move_only_type out{};
+//	co_return std::move(out);
+// }
+
+auto example() -> co_curl::task<void> {
+	co_await test1();
+	co_await test2();
+	// co_await test3();
+	// co_await test4();
+
+	auto & a = co_await test1();
+	auto & b = co_await test2();
 }
 
 int main() {
-	std::cout << fetch("https://hanicka.net") << "\n";
+	const auto ct = test1();
+	auto t = test1();
+	const move_only_type & a = ct;
+	// move_only_type & b = ct;
+	// move_only_type & c = test1();
+	const move_only_type & c = test1(); // dangerous?
+	move_only_type d = test1();
+	// move_only_type e = t;
 }

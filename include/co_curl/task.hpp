@@ -4,6 +4,7 @@
 #include "concepts.hpp"
 #include "scheduler.hpp"
 #include <optional>
+#include <variant>
 #include <cassert>
 #include <concepts>
 #include <coroutine>
@@ -11,44 +12,106 @@
 namespace co_curl {
 
 namespace internal {
-	template <typename T> struct promise_return {
-		std::optional<T> result{std::nullopt};
+	template <typename From, typename To> concept move_constructible = requires(From & from, To to) {
+		{ To(std::move(from)) };
+	};
 
-		constexpr void return_value(std::convertible_to<T> auto && r) {
+	template <typename T> struct result_type: std::variant<std::monostate, T, std::exception_ptr> {
+		using super = std::variant<std::monostate, T, std::exception_ptr>;
+		using super::super;
+
+		bool has_value() const noexcept {
+			return super::index() == 1u;
+		}
+
+		bool has_exception() const noexcept {
+			return super::index() == 2u;
+		}
+
+		void check_exception() {
+			if (has_exception()) {
+				std::rethrow_exception(*std::get_if<2>(this));
+			}
+		}
+
+		T & ref() {
+			check_exception();
+			assert(has_value());
+			return *std::get_if<1>(this);
+		}
+
+		const T & cref() {
+			check_exception();
+			assert(has_value());
+			return *std::get_if<1>(this);
+		}
+
+		T move() {
+			check_exception();
+			assert(has_value());
+			return std::move(*std::get_if<1>(this));
+		}
+	};
+
+	struct empty_type { };
+
+	template <> struct result_type<void>: std::variant<std::monostate, empty_type, std::exception_ptr> {
+		using super = std::variant<std::monostate, empty_type, std::exception_ptr>;
+		using super::super;
+
+		bool has_value() const noexcept {
+			return super::index() == 1u;
+		}
+
+		bool has_exception() const noexcept {
+			return super::index() == 2u;
+		}
+
+		void check_exception() {
+			if (has_exception()) {
+				std::rethrow_exception(*std::get_if<2>(this));
+			}
+		}
+
+		void ref() {
+			check_exception();
+		}
+
+		void cref() {
+			check_exception();
+		}
+
+		void move() {
+			check_exception();
+		}
+	};
+
+	template <typename T> struct promise_return {
+		result_type<T> result{};
+
+		template <move_constructible<T> Y> void return_value(Y && r) {
 			// to avoid assign
 			std::destroy_at(&result);
-			new (&result) T(std::forward<decltype(r)>(r));
-		}
-
-		constexpr T & ref() noexcept {
-			assert(result.has_value());
-			return *result;
-		}
-
-		constexpr const T & cref() noexcept {
-			assert(result.has_value());
-			return *result;
-		}
-
-		constexpr T move() noexcept {
-			assert(result.has_value());
-			return *result;
+			new (&result) result_type<T>(std::in_place_type<T>, std::move(r));
 		}
 
 		auto unhandled_exception() noexcept {
-			std::terminate(); // todo remove
+			std::destroy_at(&result);
+			new (&result) result_type<T>(std::in_place_type<std::exception_ptr>, std::current_exception());
 		}
 	};
 
 	template <> struct promise_return<void> {
-		constexpr void return_void() noexcept { }
+		result_type<void> result{};
 
-		constexpr void ref() const noexcept { }
-		constexpr void cref() const noexcept { }
-		constexpr void move() const noexcept { }
+		void return_void() noexcept {
+			std::destroy_at(&result);
+			new (&result) result_type<void>(std::in_place_type<empty_type>);
+		}
 
 		auto unhandled_exception() noexcept {
-			std::terminate(); // todo remove
+			std::destroy_at(&result);
+			new (&result) result_type<void>(std::in_place_type<std::exception_ptr>, std::current_exception());
 		}
 	};
 
@@ -149,65 +212,6 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct ta
 		}
 	}
 
-	void finish() const {
-		assert(handle != nullptr);
-		if (!handle.done()) {
-			handle.resume();
-		}
-	}
-
-	decltype(auto) get_without_finishing() & {
-		assert(handle != nullptr);
-		assert(handle.done());
-		return handle.promise().ref();
-	}
-
-	decltype(auto) get_without_finishing() const & {
-		assert(handle != nullptr);
-		assert(handle.done());
-		return handle.promise().cref();
-	}
-
-	decltype(auto) get_without_finishing() const && requires std::copyable<R> {
-		assert(handle != nullptr);
-		assert(handle.done());
-		return std::move(handle.promise()).move();
-	}
-
-	decltype(auto) get_without_finishing() && {
-		assert(handle != nullptr);
-		assert(handle.done());
-		return std::move(handle.promise()).ref();
-	}
-
-	decltype(auto) get() & noexcept {
-		finish();
-		return get_without_finishing();
-	}
-
-	decltype(auto) get() const & noexcept {
-		finish();
-		return get_without_finishing();
-	}
-
-	decltype(auto) get() && noexcept requires std::copyable<R> {
-		finish();
-		return get_without_finishing();
-	}
-
-	decltype(auto) get() const && noexcept {
-		finish();
-		return get_without_finishing();
-	}
-
-	operator R() & noexcept {
-		return get();
-	}
-
-	operator R() && noexcept {
-		return get();
-	}
-
 	bool await_ready() const noexcept {
 		assert(handle != nullptr);
 		return handle.done();
@@ -217,25 +221,35 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct ta
 		return handle.promise().someone_is_waiting_on_me(awaiter);
 	}
 
-	decltype(auto) await_resume() & noexcept {
-		return get_without_finishing();
+	decltype(auto) await_resume() & {
+		return handle.promise().result.ref();
 	}
 
-	decltype(auto) await_resume() && noexcept {
-		return get_without_finishing();
+	template <typename Y> requires(std::same_as<Y, R> && !std::same_as<R, void>) operator Y &() & {
+		return handle.promise().result.ref();
 	}
 
-	decltype(auto) await_resume() const & noexcept {
-		return get_without_finishing();
+	decltype(auto) await_resume() const & {
+		return handle.promise().result.cref();
 	}
 
-	decltype(auto) await_resume() const && noexcept requires std::copyable<R> {
-		return get_without_finishing();
+	template <typename Y> requires(std::same_as<Y, R> && !std::same_as<R, void>) operator const Y &() const & {
+		return handle.promise().result.cref();
 	}
+
+	decltype(auto) await_resume() && {
+		return handle.promise().result.move();
+	}
+
+	template <typename Y> requires(std::same_as<Y, R> && !std::same_as<R, void>) operator Y() && {
+		return handle.promise().result.move();
+	}
+
+	void await_resume() const && = delete;
 
 	// support for streaming
-	friend std::ostream & operator<<(std::ostream & os, const task & t) requires ostreamable<R> {
-		return os << t.get();
+	template <typename T> friend auto operator<<(std::basic_ostream<T> & os, const task & t) -> std::basic_ostream<T> & requires ostreamable<R, T> {
+		return os << static_cast<const R &>(t);
 	}
 };
 

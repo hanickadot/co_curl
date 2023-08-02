@@ -29,5 +29,5 @@ auto start() -> co_curl::task<std::string> {
 }
 
 int main() {
-	std::cout << start().get() << "\n";
+	std::cout << start() << "\n";
 }
