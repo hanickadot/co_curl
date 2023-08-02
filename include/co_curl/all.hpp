@@ -24,8 +24,8 @@ template <typename T> concept type_is_optional = bool(decltype(match_optional::t
 
 template <typename R> concept range_of_tasks = std::ranges::range<R> && type_is_task<std::ranges::range_value_t<R>>;
 
-template <range_of_tasks R> using range_of_tasks_result = std::ranges::range_value_t<R>::return_type;
-template <range_of_tasks R> using range_of_tasks_optional_result = std::ranges::range_value_t<R>::return_type::value_type;
+template <range_of_tasks R> using range_of_tasks_result = typename std::ranges::range_value_t<R>::return_type;
+template <range_of_tasks R> using range_of_tasks_optional_result = typename std::ranges::range_value_t<R>::return_type::value_type;
 
 template <range_of_tasks R> auto all(R && tasks) -> co_curl::task<std::vector<range_of_tasks_result<R>>> {
 	static_assert(!type_is_optional<range_of_tasks_result<R>>);
