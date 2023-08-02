@@ -23,11 +23,9 @@ auto fetch(std::string url) -> co_curl::task<std::optional<std::string>> {
 }
 
 auto main_coroutine(const std::initializer_list<std::string> & urls) -> co_curl::task<int> {
-	auto download = [](std::string url) { return fetch(url); };
-
 	std::cout << "-- curl will start here --\n";
 
-	auto r = co_await co_curl::all(urls | std::views::transform(download));
+	auto r = co_await co_curl::all(urls | std::views::transform(fetch));
 
 	std::cout << "-- curl is finished here --\n";
 
