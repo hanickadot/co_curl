@@ -136,6 +136,30 @@ template <promise_with_scheduler Promise> struct suspend_and_schedule_next {
 	}
 };
 
+template <typename T> struct awaiter_forward {
+	std::remove_reference_t<T> & object;
+
+	bool await_ready() const noexcept {
+		return object.await_ready();
+	}
+	template <typename Y> auto await_suspend(std::coroutine_handle<Y> awaiter) const {
+		return object.await_suspend(awaiter);
+	}
+	auto await_resume() const noexcept {
+		if constexpr (std::is_lvalue_reference_v<T>) {
+			if constexpr (std::is_const_v<T>) {
+				return static_cast<const T &>(object).await_resume();
+			} else {
+				return static_cast<T &>(object).await_resume();
+			}
+		} else {
+			static_assert(std::is_rvalue_reference_v<T>);
+			static_assert(!std::is_const_v<T>);
+			return std::move(object).await_resume();
+		}
+	}
+};
+
 template <typename R, typename Scheduler> struct promise_type: internal::promise_return<R> {
 	using scheduler_type = Scheduler;
 
@@ -164,12 +188,8 @@ template <typename R, typename Scheduler> struct promise_type: internal::promise
 	}
 
 	// pass all transformations to scheduler
-	template <typename T> constexpr decltype(auto) await_transform(T && something) {
-		if constexpr (scheduler_transforms<Scheduler, promise_type &, T &&>) {
-			return scheduler.transform(*this, something);
-		} else {
-			return std::forward<T>(something);
-		}
+	template <typename T> constexpr auto await_transform(T && in) {
+		return awaiter_forward<decltype(in)>(in);
 	}
 
 	constexpr auto await_transform(co_curl::perform perf) {
