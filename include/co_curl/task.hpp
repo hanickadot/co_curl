@@ -145,7 +145,7 @@ template <typename T> struct awaiter_forward {
 	template <typename Y> auto await_suspend(std::coroutine_handle<Y> awaiter) const {
 		return object.await_suspend(awaiter);
 	}
-	auto await_resume() const noexcept {
+	auto await_resume() const {
 		if constexpr (std::is_lvalue_reference_v<T>) {
 			if constexpr (std::is_const_v<T>) {
 				return static_cast<const T &>(object).await_resume();
