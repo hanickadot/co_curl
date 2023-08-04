@@ -188,8 +188,8 @@ template <typename R, typename Scheduler> struct promise_type: internal::promise
 	}
 
 	// pass all transformations to scheduler
-	template <typename T> constexpr auto await_transform(T && in) {
-		return awaiter_forward<decltype(in)>(in);
+	template <typename T> constexpr decltype(auto) await_transform(T && in) {
+		return std::forward<T>(in);
 	}
 
 	constexpr auto await_transform(co_curl::perform perf) {
@@ -241,6 +241,22 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct ta
 		return handle.promise().someone_is_waiting_on_me(awaiter);
 	}
 
+	// support for moving out!
+	auto operator co_await() & {
+		return awaiter_forward<task &>(*this);
+	}
+
+	auto operator co_await() const & {
+		return awaiter_forward<const task &>(*this);
+	}
+
+	auto operator co_await() && {
+		return awaiter_forward<task &&>(*this);
+	}
+
+	auto operator co_await() const && = delete;
+
+	// access
 	decltype(auto) get() & {
 		return handle.promise().result.ref();
 	}

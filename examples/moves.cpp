@@ -33,14 +33,21 @@ auto test2() -> co_curl::task<move_only_type> {
 //	co_return std::move(out);
 // }
 
+auto test5() -> co_curl::task<std::optional<move_only_type>> {
+	co_return move_only_type{};
+}
+
 auto example() -> co_curl::task<void> {
 	co_await test1();
 	co_await test2();
 	// co_await test3();
 	// co_await test4();
 
-	auto & a = co_await test1();
-	auto & b = co_await test2();
+	auto ta = test1();
+	auto & a = ta;
+	const auto tb = test2();
+	auto & b = tb;
+	auto c = co_await test5();
 }
 
 int main() {
