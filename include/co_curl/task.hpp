@@ -136,30 +136,6 @@ template <promise_with_scheduler Promise> struct suspend_and_schedule_next {
 	}
 };
 
-template <typename T> struct awaiter_forward {
-	std::remove_reference_t<T> & object;
-
-	bool await_ready() const noexcept {
-		return object.await_ready();
-	}
-	template <typename Y> auto await_suspend(std::coroutine_handle<Y> awaiter) const {
-		return object.await_suspend(awaiter);
-	}
-	auto await_resume() const {
-		if constexpr (std::is_lvalue_reference_v<T>) {
-			if constexpr (std::is_const_v<T>) {
-				return static_cast<const T &>(object).await_resume();
-			} else {
-				return static_cast<T &>(object).await_resume();
-			}
-		} else {
-			static_assert(std::is_rvalue_reference_v<T>);
-			static_assert(!std::is_const_v<T>);
-			return std::move(object).await_resume();
-		}
-	}
-};
-
 template <typename R, typename Scheduler> struct promise_type: internal::promise_return<R> {
 	using scheduler_type = Scheduler;
 
@@ -232,6 +208,54 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct ta
 		}
 	}
 
+	struct rvalue_awaiter {
+		task & t;
+
+		bool await_ready() const noexcept {
+			return t.handle.done();
+		}
+
+		template <typename T> auto await_suspend(std::coroutine_handle<T> awaiter) const {
+			return t.handle.promise().someone_is_waiting_on_me(awaiter);
+		}
+
+		decltype(auto) await_resume() const {
+			return t.handle.promise().result.move();
+		}
+	};
+
+	struct lvalue_awaiter {
+		task & t;
+
+		bool await_ready() const noexcept {
+			return t.handle.done();
+		}
+
+		template <typename T> auto await_suspend(std::coroutine_handle<T> awaiter) const {
+			return t.handle.promise().someone_is_waiting_on_me(awaiter);
+		}
+
+		decltype(auto) await_resume() const {
+			return t.handle.promise().result.ref();
+		}
+	};
+
+	struct const_lvalue_awaiter {
+		const task & t;
+
+		bool await_ready() const noexcept {
+			return t.handle.done();
+		}
+
+		template <typename T> auto await_suspend(std::coroutine_handle<T> awaiter) const {
+			return t.handle.promise().someone_is_waiting_on_me(awaiter);
+		}
+
+		decltype(auto) await_resume() const {
+			return t.handle.promise().result.cref();
+		}
+	};
+
 	bool await_ready() const noexcept {
 		assert(handle != nullptr);
 		return handle.done();
@@ -243,25 +267,21 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct ta
 
 	// support for moving out!
 	auto operator co_await() & {
-		return awaiter_forward<task &>(*this);
+		return lvalue_awaiter(*this);
 	}
 
 	auto operator co_await() const & {
-		return awaiter_forward<const task &>(*this);
+		return const_lvalue_awaiter(*this);
 	}
 
 	auto operator co_await() && {
-		return awaiter_forward<task &&>(*this);
+		return rvalue_awaiter(*this);
 	}
 
 	auto operator co_await() const && = delete;
 
 	// access
 	decltype(auto) get() & {
-		return handle.promise().result.ref();
-	}
-
-	decltype(auto) await_resume() & {
 		return handle.promise().result.ref();
 	}
 
@@ -273,10 +293,6 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct ta
 		return handle.promise().result.cref();
 	}
 
-	decltype(auto) await_resume() const & {
-		return handle.promise().result.cref();
-	}
-
 	template <typename Y> requires(std::same_as<Y, R> && !std::same_as<R, void>) operator const Y &() const & {
 		return handle.promise().result.cref();
 	}
@@ -285,16 +301,11 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct ta
 		return handle.promise().result.move();
 	}
 
-	decltype(auto) await_resume() && {
-		return handle.promise().result.move();
-	}
-
 	template <typename Y> requires(std::same_as<Y, R> && !std::same_as<R, void>) operator Y() && {
 		return handle.promise().result.move();
 	}
 
 	void get() const && = delete;
-	void await_resume() const && = delete;
 
 	// support for streaming
 	template <typename T> friend auto operator<<(std::basic_ostream<T> & os, const task & t) -> std::basic_ostream<T> & requires ostreamable<R, T> {
