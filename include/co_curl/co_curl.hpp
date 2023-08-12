@@ -3,8 +3,8 @@
 
 #include "easy.hpp"
 #include "multi.hpp"
+#include "promise.hpp"
 #include "scheduler.hpp"
-#include "task.hpp"
 #include <string_view>
 
 namespace co_curl {

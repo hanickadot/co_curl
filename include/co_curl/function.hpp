@@ -1,7 +1,7 @@
 #ifndef CO_CURL_FUNCTION_HPP
 #define CO_CURL_FUNCTION_HPP
 
-#include "task.hpp"
+#include "promise.hpp"
 #include <coroutine>
 
 namespace co_curl {

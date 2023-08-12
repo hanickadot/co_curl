@@ -1,5 +1,5 @@
-#ifndef CO_CURL_TASK_HPP
-#define CO_CURL_TASK_HPP
+#ifndef CO_CURL_PROMISE_HPP
+#define CO_CURL_PROMISE_HPP
 
 #include "concepts.hpp"
 #include "scheduler.hpp"
@@ -142,13 +142,13 @@ template <typename R, typename Scheduler> struct promise_type: internal::promise
 	scheduler_type & scheduler;
 	std::coroutine_handle<> awaiter{};
 
-	// construct my task from me
+	// construct my promise from me
 	constexpr auto get_return_object() noexcept { return self(); }
 
 	// we can provide the scheduler as coroutine argument...
 	promise_type(scheduler_type & sch = co_curl::get_scheduler<scheduler_type>(), auto &&...) noexcept: scheduler{sch} { }
 
-	// all my tasks are immediate
+	// all my promises are immediate
 	constexpr auto initial_suspend() noexcept {
 		scheduler.start();
 		return std::suspend_never();
@@ -184,32 +184,32 @@ template <typename R, typename Scheduler> struct promise_type: internal::promise
 	}
 };
 
-template <typename R, typename Scheduler = co_curl::default_scheduler> struct task {
+template <typename R, typename Scheduler = co_curl::default_scheduler> struct promise {
 	using promise_type = co_curl::promise_type<R, Scheduler>;
 	using handle_type = std::coroutine_handle<promise_type>;
 	using return_type = R;
 
 	handle_type handle{};
 
-	task(handle_type h) noexcept: handle{h} { }
+	promise(handle_type h) noexcept: handle{h} { }
 
-	task(const task &) = delete;
-	task(task && other) noexcept: handle{std::exchange(other.handle, nullptr)} { }
+	promise(const promise &) = delete;
+	promise(promise && other) noexcept: handle{std::exchange(other.handle, nullptr)} { }
 
-	task & operator=(const task &) = delete;
-	task & operator=(task && other) noexcept {
+	promise & operator=(const promise &) = delete;
+	promise & operator=(promise && other) noexcept {
 		std::swap(handle, other.handle);
 		return *this;
 	}
 
-	~task() noexcept {
+	~promise() noexcept {
 		if (handle) {
 			handle.destroy();
 		}
 	}
 
 	struct rvalue_awaiter {
-		task & t;
+		promise & t;
 
 		bool await_ready() const noexcept {
 			return t.handle.done();
@@ -225,7 +225,7 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct ta
 	};
 
 	struct lvalue_awaiter {
-		task & t;
+		promise & t;
 
 		bool await_ready() const noexcept {
 			return t.handle.done();
@@ -241,7 +241,7 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct ta
 	};
 
 	struct const_lvalue_awaiter {
-		const task & t;
+		const promise & t;
 
 		bool await_ready() const noexcept {
 			return t.handle.done();
@@ -308,10 +308,12 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct ta
 	void get() const && = delete;
 
 	// support for streaming
-	template <typename T> friend auto operator<<(std::basic_ostream<T> & os, const task & t) -> std::basic_ostream<T> & requires ostreamable<R, T> {
+	template <typename T> friend auto operator<<(std::basic_ostream<T> & os, const promise & t) -> std::basic_ostream<T> & requires ostreamable<R, T> {
 		return os << static_cast<const R &>(t);
 	}
 };
+
+template <typename R, typename Scheduler = co_curl::default_scheduler> using task = promise<R, Scheduler>;
 
 } // namespace co_curl
 
