@@ -1,7 +1,7 @@
 #include <co_curl/all.hpp>
 #include <list>
 
-auto fetch(std::string url) -> co_curl::task<std::optional<std::string>> {
+auto fetch(std::string url) -> co_curl::promise<std::optional<std::string>> {
 	auto handle = co_curl::easy_handle{url};
 
 	std::string output;
@@ -22,7 +22,7 @@ auto fetch(std::string url) -> co_curl::task<std::optional<std::string>> {
 	co_return output;
 }
 
-auto main_coroutine() -> co_curl::task<int> {
+auto main_coroutine() -> co_curl::promise<int> {
 	std::cout << "-- curl will start here --\n";
 
 	auto result = co_await co_curl::all(fetch("https://hanicka.net/a.txt"), fetch("https://hanicka.net/b.txt"));

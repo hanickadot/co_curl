@@ -1,6 +1,6 @@
 #include <co_curl/co_curl.hpp>
 
-auto fetch(std::string url) -> co_curl::task<bool> {
+auto fetch(std::string url) -> co_curl::promise<bool> {
 	auto handle = co_curl::easy_handle{url};
 
 	handle.write_nowhere();

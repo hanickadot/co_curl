@@ -2,7 +2,7 @@
 #include <co_curl/format.hpp>
 #include <iostream>
 
-auto fetch(std::string url) -> co_curl::task<std::string> {
+auto fetch(std::string url) -> co_curl::promise<std::string> {
 	auto handle = co_curl::easy_handle{url};
 
 	std::string output;
@@ -28,7 +28,7 @@ auto fetch(std::string url) -> co_curl::task<std::string> {
 	co_return output;
 }
 
-auto download_two() -> co_curl::task<std::string> {
+auto download_two() -> co_curl::promise<std::string> {
 	std::cout << "1 download_two: start\n";
 
 	auto a = fetch("https://hanicka.net/");
@@ -46,7 +46,7 @@ auto download_two() -> co_curl::task<std::string> {
 	co_return r;
 }
 
-auto download_two_b() -> co_curl::task<std::string> {
+auto download_two_b() -> co_curl::promise<std::string> {
 	std::cout << "2 download_two: start\n";
 
 	auto a = fetch("https://hanickadot.github.io/");
@@ -64,7 +64,7 @@ auto download_two_b() -> co_curl::task<std::string> {
 	co_return r;
 }
 
-auto download_four() -> co_curl::task<std::string> {
+auto download_four() -> co_curl::promise<std::string> {
 	auto a = download_two();
 	auto b = download_two_b();
 

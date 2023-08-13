@@ -1,7 +1,7 @@
 #include <co_curl/co_curl.hpp>
 #include <exception>
 
-auto fetch(std::string url, unsigned id, unsigned & id_out) -> co_curl::task<void> {
+auto fetch(std::string url, unsigned id, unsigned & id_out) -> co_curl::promise<void> {
 	auto handle = co_curl::easy_handle{url};
 
 	handle.fresh_connect();
@@ -19,7 +19,7 @@ auto fetch(std::string url, unsigned id, unsigned & id_out) -> co_curl::task<voi
 	}
 }
 
-auto select_first() -> co_curl::task<unsigned> {
+auto select_first() -> co_curl::promise<unsigned> {
 	unsigned result = 0;
 
 	auto a = fetch("https://hanicka.net/a.txt", 1, result);

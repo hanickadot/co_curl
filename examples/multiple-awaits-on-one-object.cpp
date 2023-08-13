@@ -1,7 +1,7 @@
 #include <co_curl/co_curl.hpp>
 #include <iostream>
 
-auto fetch(std::string url) -> co_curl::task<std::string> {
+auto fetch(std::string url) -> co_curl::promise<std::string> {
 	auto handle = co_curl::easy_handle{url};
 
 	std::string output;
@@ -27,11 +27,11 @@ auto fetch(std::string url) -> co_curl::task<std::string> {
 	co_return output;
 }
 
-auto download_index() -> co_curl::task<size_t> {
+auto download_index() -> co_curl::promise<size_t> {
 	co_return (co_await fetch("https://hanicka.net/FPL07048.jpg")).size();
 }
 
-auto process_left(const co_curl::task<size_t> & index) -> co_curl::task<size_t> {
+auto process_left(const co_curl::promise<size_t> & index) -> co_curl::promise<size_t> {
 	std::cout << "download_left...\n";
 
 	std::cout << co_await index << "\n";
@@ -39,7 +39,7 @@ auto process_left(const co_curl::task<size_t> & index) -> co_curl::task<size_t> 
 	co_return 1;
 }
 
-auto process_right(const co_curl::task<size_t> & index) -> co_curl::task<size_t> {
+auto process_right(const co_curl::promise<size_t> & index) -> co_curl::promise<size_t> {
 	std::cout << "download_right...\n";
 
 	std::cout << co_await index << "\n";
@@ -47,7 +47,7 @@ auto process_right(const co_curl::task<size_t> & index) -> co_curl::task<size_t>
 	co_return 2;
 }
 
-auto test() -> co_curl::task<void> {
+auto test() -> co_curl::promise<void> {
 	const auto index = download_index();
 
 	std::cout << "before processing...\n";

@@ -5,7 +5,7 @@
 #include <fstream>
 #include <iterator>
 
-auto load_file(std::filesystem::path path) -> co_curl::task<std::vector<char>> {
+auto load_file(std::filesystem::path path) -> co_curl::promise<std::vector<char>> {
 	std::cout << "Loading file '" << path << "'...\n";
 
 	auto stream = std::ifstream{path, std::ios::binary};
@@ -30,7 +30,7 @@ auto load_file(std::filesystem::path path) -> co_curl::task<std::vector<char>> {
 	co_return output;
 }
 
-auto upload(std::string name, std::string url, std::string username, std::string password, std::filesystem::path filepath) -> co_curl::task<bool> {
+auto upload(std::string name, std::string url, std::string username, std::string password, std::filesystem::path filepath) -> co_curl::promise<bool> {
 	auto postquote = co_curl::list{};
 	postquote.append("RNFR temporary.bin");
 	postquote.append("RNTO " + name);

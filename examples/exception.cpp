@@ -1,6 +1,6 @@
 #include <co_curl/co_curl.hpp>
 
-auto fetch(std::string url) -> co_curl::task<std::string> {
+auto fetch(std::string url) -> co_curl::promise<std::string> {
 	auto handle = co_curl::easy_handle{url};
 
 	std::string output;
@@ -16,7 +16,7 @@ auto fetch(std::string url) -> co_curl::task<std::string> {
 	co_return output;
 }
 
-auto outer(std::string url) -> co_curl::task<std::string> {
+auto outer(std::string url) -> co_curl::promise<std::string> {
 	// test propagation of exception
 	try {
 		co_return co_await fetch(url);

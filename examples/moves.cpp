@@ -13,31 +13,31 @@ struct move_only_type {
 	move_only_type & operator=(const move_only_type & other) noexcept = delete;
 };
 
-auto test1() -> co_curl::task<move_only_type> {
+auto test1() -> co_curl::promise<move_only_type> {
 	move_only_type out{};
 	co_return out;
 }
 
-auto test2() -> co_curl::task<move_only_type> {
+auto test2() -> co_curl::promise<move_only_type> {
 	move_only_type out{};
 	co_return std::move(out);
 }
 
-// auto test3() -> co_curl::task<move_only_type> {
+// auto test3() -> co_curl::promise<move_only_type> {
 //	const move_only_type out{};
 //	co_return out;
 // }
 //
-// auto test4() -> co_curl::task<move_only_type> {
+// auto test4() -> co_curl::promise<move_only_type> {
 //	const move_only_type out{};
 //	co_return std::move(out);
 // }
 
-auto test5() -> co_curl::task<std::optional<move_only_type>> {
+auto test5() -> co_curl::promise<std::optional<move_only_type>> {
 	co_return move_only_type{};
 }
 
-auto example() -> co_curl::task<void> {
+auto example() -> co_curl::promise<void> {
 	co_await test1();
 	co_await test2();
 	// co_await test3();
