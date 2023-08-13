@@ -64,17 +64,22 @@ template <range_of_tasks R> requires(type_is_optional<range_of_tasks_result<R>>)
 		materialized.emplace_back(std::move(task));
 	}
 
-	std::vector<task_result_type> output{};
-	output.reserve(materialized.size());
+	auto output = std::optional<std::vector<task_result_type>>(std::in_place);
+	output->reserve(materialized.size());
 
 	for (auto && task: materialized) {
 		auto r = co_await std::move(task);
 
-		if (!r.has_value()) {
-			co_return std::nullopt;
+		if (!output) {
+			continue;
 		}
 
-		output.emplace_back(std::move(*r));
+		if (!r.has_value()) {
+			output = std::nullopt;
+			continue;
+		}
+
+		output->emplace_back(std::move(*r));
 	}
 
 	co_return output;
