@@ -31,6 +31,7 @@ struct result {
 	}
 
 	bool is_partial_transfer() const noexcept;
+	bool is_timeout() const noexcept;
 };
 
 struct easy_handle {

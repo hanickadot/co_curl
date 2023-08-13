@@ -19,6 +19,10 @@ bool co_curl::result::is_partial_transfer() const noexcept {
 	return code == CURLE_PARTIAL_FILE;
 }
 
+bool co_curl::result::is_timeout() const noexcept {
+	return code == CURLE_OPERATION_TIMEDOUT;
+}
+
 co_curl::easy_handle::easy_handle(): native_handle{curl_easy_init()} { }
 
 co_curl::easy_handle::~easy_handle() noexcept {
