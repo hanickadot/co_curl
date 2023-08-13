@@ -93,6 +93,10 @@ struct easy_handle {
 
 	void low_speed_timeout(std::chrono::seconds duration, size_t bytes_per_second) noexcept;
 
+	// support for scheduler
+	void set_coroutine_handle(std::coroutine_handle<void>) noexcept;
+	auto get_coroutine_handle() noexcept -> std::coroutine_handle<void>;
+
 	// getters
 	auto get_content_type() const noexcept -> std::optional<std::string_view>;
 	auto get_content_length() const noexcept -> std::optional<size_t>;

@@ -114,6 +114,16 @@ void co_curl::easy_handle::low_speed_timeout(std::chrono::seconds duration, size
 	curl_easy_setopt(native_handle, CURLOPT_LOW_SPEED_TIME, static_cast<long>(duration.count()));
 }
 
+void co_curl::easy_handle::set_coroutine_handle(std::coroutine_handle<void> h) noexcept {
+	curl_easy_setopt(native_handle, CURLOPT_PRIVATE, h.address());
+}
+
+auto co_curl::easy_handle::get_coroutine_handle() noexcept -> std::coroutine_handle<void> {
+	void * ptr = nullptr;
+	curl_easy_getinfo(native_handle, CURLINFO_PRIVATE, &ptr);
+	return std::coroutine_handle<void>::from_address(ptr);
+}
+
 void co_curl::easy_handle::ssl_verify_peer(bool enable) noexcept {
 	curl_easy_setopt(native_handle, CURLOPT_SSL_VERIFYPEER, static_cast<long>(enable));
 }

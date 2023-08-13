@@ -34,35 +34,19 @@ struct coroutine_handle_queue {
 };
 
 struct waiting_coroutines_for_curl_finished {
-	std::map<CURL *, std::coroutine_handle<>> data{};
+	// std::map<CURL *, std::coroutine_handle<>> data{};
 	multi_handle curl{};
 	result code{};
 
 	void insert(easy_handle & trigger, std::coroutine_handle<> coro_handle) {
-		[[maybe_unused]] const auto r = data.emplace(trigger.native_handle, coro_handle);
-		assert(r.second);
+		trigger.set_coroutine_handle(coro_handle);
 		curl.add_handle(trigger);
 	}
 
-	auto trigger(CURL * trigger) -> std::coroutine_handle<> {
-		const auto it = data.find(trigger);
-
-		assert(it != data.end());
-
-		const auto handle = it->second;
-
-		data.erase(it);
-		curl.remove_handle(trigger);
-
-		return handle;
-	}
-
-	bool empty() const noexcept {
-		return data.empty();
-	}
+	auto trigger(CURL * trigger) noexcept -> std::coroutine_handle<>;
 
 	auto complete_something(std::chrono::milliseconds timeout = std::chrono::milliseconds{100}) -> std::coroutine_handle<> {
-		while (!empty()) {
+		for (;;) {
 			const auto r = curl.sync_perform();
 
 			if (!r.has_value()) {
@@ -79,8 +63,6 @@ struct waiting_coroutines_for_curl_finished {
 
 				return trigger(handle);
 			}
-
-			// std::cout << "> remaining = " << *r << "\n";
 
 			if (*r == 0) {
 				break;
