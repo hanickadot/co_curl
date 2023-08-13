@@ -105,6 +105,11 @@ void co_curl::easy_handle::disable_resume() noexcept {
 	resume(0u);
 }
 
+void co_curl::easy_handle::low_speed_timeout(std::chrono::seconds duration, size_t bytes_per_second) noexcept {
+	curl_easy_setopt(native_handle, CURLOPT_LOW_SPEED_LIMIT, static_cast<long>(bytes_per_second));
+	curl_easy_setopt(native_handle, CURLOPT_LOW_SPEED_TIME, static_cast<long>(duration.count()));
+}
+
 void co_curl::easy_handle::ssl_verify_peer(bool enable) noexcept {
 	curl_easy_setopt(native_handle, CURLOPT_SSL_VERIFYPEER, static_cast<long>(enable));
 }

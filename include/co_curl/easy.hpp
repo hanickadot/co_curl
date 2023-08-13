@@ -9,6 +9,7 @@
 #include <string_view>
 #include <utility>
 #include <cassert>
+#include <chrono>
 #include <coroutine>
 #include <cstddef>
 
@@ -88,6 +89,8 @@ struct easy_handle {
 
 	void resume(size_t position) noexcept;
 	void disable_resume() noexcept;
+
+	void low_speed_timeout(std::chrono::seconds duration, size_t bytes_per_second) noexcept;
 
 	// getters
 	auto get_content_type() const noexcept -> std::optional<std::string_view>;
