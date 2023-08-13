@@ -3,6 +3,7 @@
 
 #include "promise.hpp"
 #include <ranges>
+#include <tuple>
 #include <vector>
 
 namespace co_curl {
@@ -83,6 +84,22 @@ template <range_of_tasks R> requires(type_is_optional<range_of_tasks_result<R>>)
 	}
 
 	co_return output;
+}
+
+template <typename... Ts, typename... Scheduler> auto all(co_curl::promise<Ts, Scheduler> &&... promises) -> co_curl::promise<std::tuple<Ts...>> {
+	co_return std::tuple<Ts...>{(co_await promises)...};
+}
+
+template <typename... Ts, typename... Scheduler> auto all(co_curl::promise<std::optional<Ts>, Scheduler> &&... promises) -> co_curl::promise<std::optional<std::tuple<Ts...>>> {
+	auto tmp = std::tuple<std::optional<Ts>...>{(co_await promises)...};
+
+	co_return [&]<size_t... Idx>(std::index_sequence<Idx...>) -> std::optional<std::tuple<Ts...>> {
+		if (((!std::get<Idx>(tmp).has_value()) || ... || true)) {
+			return std::nullopt;
+		}
+
+		return std::tuple<Ts...>{std::move(*std::get<Idx>(tmp))...};
+	}(std::make_index_sequence<sizeof...(Ts)>());
 }
 
 } // namespace co_curl
