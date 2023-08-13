@@ -9,7 +9,7 @@ namespace co_curl {
 
 // TODO for now I react only on tasks
 struct match_task {
-	template <typename... Ts> static auto test(co_curl::task<Ts...> &) -> std::true_type;
+	template <typename... Ts> static auto test(co_curl::promise<Ts...> &) -> std::true_type;
 	template <typename Y> static auto test(Y &) -> std::false_type;
 };
 
@@ -27,7 +27,7 @@ template <typename R> concept range_of_tasks = std::ranges::range<R> && type_is_
 template <range_of_tasks R> using range_of_tasks_result = typename std::ranges::range_value_t<R>::return_type;
 template <range_of_tasks R> using range_of_tasks_optional_result = typename std::ranges::range_value_t<R>::return_type::value_type;
 
-template <range_of_tasks R> auto all(R && tasks) -> co_curl::task<std::vector<range_of_tasks_result<R>>> {
+template <range_of_tasks R> auto all(R && tasks) -> co_curl::promise<std::vector<range_of_tasks_result<R>>> {
 	static_assert(!type_is_optional<range_of_tasks_result<R>>);
 
 	using value_type = std::ranges::range_value_t<R>;
@@ -51,7 +51,7 @@ template <range_of_tasks R> auto all(R && tasks) -> co_curl::task<std::vector<ra
 	co_return output;
 }
 
-template <range_of_tasks R> requires(type_is_optional<range_of_tasks_result<R>>) auto all(R && tasks) -> co_curl::task<std::optional<std::vector<range_of_tasks_optional_result<R>>>> {
+template <range_of_tasks R> requires(type_is_optional<range_of_tasks_result<R>>) auto all(R && tasks) -> co_curl::promise<std::optional<std::vector<range_of_tasks_optional_result<R>>>> {
 	static_assert(type_is_optional<range_of_tasks_result<R>>);
 	using value_type = std::ranges::range_value_t<R>;
 	using task_result_type = range_of_tasks_optional_result<R>;
