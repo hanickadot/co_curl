@@ -87,6 +87,7 @@ struct easy_handle {
 	void password(const char *) noexcept;
 
 	void resume(size_t position) noexcept;
+	void disable_resume() noexcept;
 
 	// getters
 	auto get_content_type() const noexcept -> std::optional<std::string_view>;

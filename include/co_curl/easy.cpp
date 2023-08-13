@@ -101,6 +101,10 @@ void co_curl::easy_handle::resume(size_t position) noexcept {
 	curl_easy_setopt(native_handle, CURLOPT_RESUME_FROM_LARGE, static_cast<curl_off_t>(position));
 }
 
+void co_curl::easy_handle::disable_resume() noexcept {
+	resume(0u);
+}
+
 void co_curl::easy_handle::ssl_verify_peer(bool enable) noexcept {
 	curl_easy_setopt(native_handle, CURLOPT_SSL_VERIFYPEER, static_cast<long>(enable));
 }
