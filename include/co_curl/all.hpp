@@ -94,7 +94,7 @@ template <typename... Ts, typename... Scheduler> auto all(co_curl::promise<std::
 	auto tmp = std::tuple<std::optional<Ts>...>{(co_await std::move(promises))...};
 
 	co_return [&]<size_t... Idx>(std::index_sequence<Idx...>) -> std::optional<std::tuple<Ts...>> {
-		if (((!std::get<Idx>(tmp).has_value()) || ... || true)) {
+		if (((!std::get<Idx>(tmp).has_value()) || ... || false)) {
 			return std::nullopt;
 		}
 
