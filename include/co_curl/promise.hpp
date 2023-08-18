@@ -173,14 +173,27 @@ template <typename R, typename Scheduler> struct promise_type: internal::promise
 		return co_curl::perform_later(scheduler, perf.handle);
 	}
 
-	template <typename T> auto someone_is_waiting_on_me(std::coroutine_handle<T> other) -> std::coroutine_handle<> {
+	void add_awaiting(std::coroutine_handle<> other) {
 		if (awaiter) {
-			return scheduler.suspend_additional_awaiter(self(), other);
-			// scheduler.suspend_and_wait_fo(other);
+			scheduler.add_additional_awaiter(self(), other);
 		} else {
 			awaiter = other;
-			return scheduler.suspend();
 		}
+	}
+
+	void remove_awaiting(std::coroutine_handle<> other) {
+		if (awaiter == nullptr) {
+			// nothing
+		} else if (awaiter == other) {
+			awaiter = {};
+		} else {
+			scheduler.remove_additional_awaiter(self(), other);
+		}
+	}
+
+	auto someone_is_waiting_on_me(std::coroutine_handle<> other) -> std::coroutine_handle<> {
+		add_awaiting(other);
+		return scheduler.suspend();
 	}
 };
 

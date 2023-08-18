@@ -125,9 +125,20 @@ struct default_scheduler: task_counter {
 		}
 	}
 
-	auto suspend_additional_awaiter(std::coroutine_handle<> awaited, std::coroutine_handle<> sleeping) {
+	void add_additional_awaiter(std::coroutine_handle<> awaited, std::coroutine_handle<> sleeping) {
 		waiting_for_someone_else.emplace(awaited, sleeping);
-		return suspend();
+	}
+
+	void remove_additional_awaiter(std::coroutine_handle<> awaited, std::coroutine_handle<> sleeping) {
+		const auto [f, l] = waiting_for_someone_else.equal_range(awaited);
+
+		for (auto it = f; it != l;) {
+			if (it->second == sleeping) {
+				it = waiting_for_someone_else.erase(it);
+			} else {
+				++it;
+			}
+		}
 	}
 
 	auto get_curl() -> multi_handle & {
