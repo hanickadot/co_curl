@@ -18,19 +18,19 @@ template <typename... Ts> struct select_tuple_awaitor {
 
 	select_tuple_awaitor(Ts... rng) noexcept: promises(std::forward<decltype(rng)>(rng)...) { }
 
+	template <typename CB> bool any(CB && cb) const {
+		return [&]<size_t... Idx>(std::index_sequence<Idx...>) { return ((bool)cb(std::get<Idx>(promises)) || ... || false); }(index);
+	}
+
 	bool await_ready() const noexcept {
 		// check if any is already ready
-		return [&]<size_t... Idx>(std::index_sequence<Idx...>) -> bool {
-			return (std::get<Idx>(promises).await_ready() || ... || false);
-		}(index);
+		return any([](auto && promise) -> bool { return promise.await_ready(); });
 	}
 
 	template <typename R, typename Scheduler> auto await_suspend(std::coroutine_handle<co_curl::promise_type<R, Scheduler>> h) noexcept {
 		awaiting = h;
 		// any of these coroutines if will be finished will wake up awaiting coroutine `h`
-		[&]<size_t... Idx>(std::index_sequence<Idx...>) {
-			((void)(std::get<Idx>(promises).handle.promise().add_awaiting(awaiting)), ...);
-			}(index);
+		for_each([&](auto && promise) { promise.handle.promise().add_awaiting(awaiting); });
 
 		// ask scheduler what to do next, this will be awaken when some of the coroutines is finished...
 		return h.promise().scheduler.suspend();
@@ -48,11 +48,13 @@ template <typename... Ts> struct select_tuple_awaitor {
 		}
 	}
 
+	template <typename CB> void for_each(CB && cb) {
+		[&]<size_t... Idx>(std::index_sequence<Idx...>) { ((void)cb(std::get<Idx>(promises)), ...); }(index);
+	}
+
 	auto await_resume() noexcept -> result_type {
 		// find the ready one and return it's output
-		[&]<size_t... Idx>(std::index_sequence<Idx...>) {
-			((void)(std::get<Idx>(promises).handle.promise().remove_awaiting(awaiting)), ...);
-			}(index);
+		for_each([&](auto && promise) { promise.handle.promise().remove_awaiting(awaiting); });
 
 		return recursive_get();
 	}
