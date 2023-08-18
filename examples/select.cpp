@@ -33,11 +33,9 @@ auto main_coroutine() -> co_curl::promise<int> {
 	std::cout << "-- curl is finished here --\n";
 
 	if (!result) {
-		std::cout << "something wasn't downloaded!";
+		std::cout << "a download was unsuccessful!";
 		co_return 1;
 	}
-
-	// identify<decltype(result)> i;
 
 	std::cout << *result << "\n";
 
