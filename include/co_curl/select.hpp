@@ -8,54 +8,7 @@
 
 namespace co_curl {
 
-template <typename Range> struct select_awaitor;
-
-template <range_of_tasks Range> struct select_awaitor<Range> {
-	Range range;
-	std::coroutine_handle<> awaiting{};
-
-	select_awaitor(Range rng) noexcept: range{rng} { }
-	select_awaitor(std::same_as<std::ranges::range_value_t<Range>> auto... rng) noexcept: range{std::move(rng)...} { }
-
-	bool await_ready() const noexcept {
-		// check if any is already ready
-		for (auto & task: range) {
-			if (task.await_ready()) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	template <typename R, typename Scheduler> auto await_suspend(std::coroutine_handle<co_curl::promise_type<R, Scheduler>> h) noexcept {
-		awaiting = h;
-		// any of these coroutines if will be finished will wake up awaiting coroutine `h`
-		for (auto & task: range) {
-			task.handle.promise().add_awaiting(awaiting);
-		}
-
-		// ask scheduler what to do next, this will be awaken when some of the coroutines is finished...
-		return h.promise().scheduler.suspend();
-	}
-
-	auto await_resume() noexcept {
-		// find the ready one and return it's output
-		for (auto & task: range) {
-			task.handle.promise().remove_awaiting(awaiting);
-		}
-
-		// iterate over to look for finished one
-		for (auto & task: range) {
-			if (task.await_ready()) {
-				return task.operator co_await().await_resume();
-			}
-		}
-
-		std::terminate();
-	}
-};
-
-template <typename... Ts> struct select_awaitor<std::tuple<Ts...>> {
+template <typename... Ts> struct select_tuple_awaitor {
 	std::tuple<Ts...> promises;
 	std::coroutine_handle<> awaiting{};
 
@@ -63,7 +16,7 @@ template <typename... Ts> struct select_awaitor<std::tuple<Ts...>> {
 
 	static constexpr auto index = std::make_index_sequence<sizeof...(Ts)>();
 
-	select_awaitor(Ts... rng) noexcept: promises(std::forward<decltype(rng)>(rng)...) { }
+	select_tuple_awaitor(Ts... rng) noexcept: promises(std::forward<decltype(rng)>(rng)...) { }
 
 	bool await_ready() const noexcept {
 		// check if any is already ready
@@ -105,14 +58,9 @@ template <typename... Ts> struct select_awaitor<std::tuple<Ts...>> {
 	}
 };
 
-template <typename> struct identify;
-
-template <range_of_tasks R> auto select(R && tasks) {
-	return co_curl::select_awaitor<R>(std::forward<R>(tasks));
-}
-
+// for now only parameter packs ... ranges later
 auto select(type_is_task auto &&... promises) {
-	return co_curl::select_awaitor<std::tuple<decltype(promises)...>>(std::forward<decltype(promises)>(promises)...);
+	return co_curl::select_tuple_awaitor<decltype(promises)...>(std::forward<decltype(promises)>(promises)...);
 }
 
 } // namespace co_curl

@@ -30,11 +30,6 @@ auto main_coroutine() -> co_curl::promise<int> {
 	// get first to complete..., rest will be destroyed
 	auto result = co_await co_curl::select(fetch("https://hanicka.net/a.txt"), fetch("https://hanicka.net/b.txt"));
 
-	// auto a = fetch("https://hanicka.net/a.txt");
-	// auto b = fetch("https://hanicka.net/b.txt");
-	//
-	// auto result2 = co_await co_curl::select(a, b);
-
 	std::cout << "-- curl is finished here --\n";
 
 	if (!result) {
