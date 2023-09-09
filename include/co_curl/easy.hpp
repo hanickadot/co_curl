@@ -212,6 +212,17 @@ struct perform {
 	}
 };
 
+template <unsigned Lower, unsigned Upper> struct http_code_group {
+	friend constexpr bool operator==(http_code_group, unsigned r) noexcept {
+		return (r >= Lower) && (r < Upper);
+	}
+};
+
+static constexpr auto http_1XX = http_code_group<100, 200>{};
+static constexpr auto http_2XX = http_code_group<200, 300>{};
+static constexpr auto http_4XX = http_code_group<400, 500>{};
+static constexpr auto http_5XX = http_code_group<500, 600>{};
+
 } // namespace co_curl
 
 #endif
