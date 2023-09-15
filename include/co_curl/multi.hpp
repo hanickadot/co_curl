@@ -65,6 +65,8 @@ struct multi_handle {
 		return info_read(remaining);
 	}
 
+	auto get_finished() -> std::optional<finished>;
+
 	// options
 };
 

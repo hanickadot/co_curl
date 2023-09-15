@@ -73,3 +73,23 @@ auto co_curl::multi_handle::info_read(unsigned & msg_remaining) noexcept -> std:
 
 	std::terminate();
 }
+
+auto co_curl::multi_handle::get_finished() -> std::optional<finished> {
+	int msg_count{0};
+	CURLMsg * msg = curl_multi_info_read(native_handle, &msg_count);
+
+	assert(msg_count <= (std::numeric_limits<int>::max)());
+	assert(msg_count >= 0);
+
+	// msg_remaining = static_cast<unsigned>(msg_count);
+
+	if (!msg) {
+		return std::nullopt;
+	}
+
+	if (msg->msg == CURLMSG_DONE) {
+		return finished{msg->easy_handle, msg->data.result};
+	}
+
+	std::terminate();
+}

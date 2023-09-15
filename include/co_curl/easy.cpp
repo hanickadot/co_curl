@@ -54,6 +54,10 @@ void co_curl::easy_handle::url(const char * u) {
 	curl_easy_setopt(native_handle, CURLOPT_URL, u);
 }
 
+void co_curl::easy_handle::follow_location(bool enable) noexcept {
+	curl_easy_setopt(native_handle, CURLOPT_FOLLOWLOCATION, static_cast<long>(enable));
+}
+
 void co_curl::easy_handle::verbose(bool enable) noexcept {
 	curl_easy_setopt(native_handle, CURLOPT_VERBOSE, static_cast<long>(enable));
 }

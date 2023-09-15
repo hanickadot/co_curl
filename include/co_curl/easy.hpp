@@ -52,6 +52,10 @@ struct easy_handle {
 		url(u);
 	}
 
+	easy_handle(std::string_view u): easy_handle() {
+		url(u);
+	}
+
 	// destructor
 	~easy_handle() noexcept;
 
@@ -72,7 +76,9 @@ struct easy_handle {
 	// setters
 	void url(const char * u);
 	void url(const std::string & u) { url(u.c_str()); }
+	void url(std::string_view u) { url(std::string{u}); } // I know, but CURL doesn't accept pointer+size
 
+	void follow_location(bool enable = true) noexcept;
 	void verbose(bool enable = true) noexcept;
 	void pipewait(bool enable = true) noexcept;
 	void fresh_connect(bool enable = true) noexcept;

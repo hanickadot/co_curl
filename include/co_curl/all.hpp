@@ -28,79 +28,91 @@ template <typename R> concept range_of_tasks = std::ranges::range<R> && type_is_
 template <range_of_tasks R> using range_of_tasks_result = typename std::ranges::range_value_t<R>::return_type;
 template <range_of_tasks R> using range_of_tasks_optional_result = typename std::ranges::range_value_t<R>::return_type::value_type;
 
-template <range_of_tasks R> auto all(R && tasks) -> co_curl::promise<std::vector<range_of_tasks_result<R>>> {
-	static_assert(!type_is_optional<range_of_tasks_result<R>>);
+struct all_helper {
+	template <range_of_tasks R> auto operator()(R && tasks) const -> co_curl::promise<std::vector<range_of_tasks_result<R>>> {
+		static_assert(!type_is_optional<range_of_tasks_result<R>>);
 
-	using value_type = std::ranges::range_value_t<R>;
-	using task_result_type = range_of_tasks_result<R>;
-	// identify<task_result_type> i;
+		using value_type = std::ranges::range_value_t<R>;
+		using task_result_type = range_of_tasks_result<R>;
+		// identify<task_result_type> i;
 
-	// we need to materialize to start tasks...
-	// TODO replace with ranges::to
-	std::vector<value_type> materialized{};
-	for (auto && task: tasks) {
-		materialized.emplace_back(std::move(task));
-	}
-
-	std::vector<task_result_type> output{};
-	output.reserve(materialized.size());
-
-	for (auto && task: materialized) {
-		output.emplace_back(co_await std::move(task));
-	}
-
-	co_return output;
-}
-
-template <range_of_tasks R> requires(type_is_optional<range_of_tasks_result<R>>) auto all(R && tasks) -> co_curl::promise<std::optional<std::vector<range_of_tasks_optional_result<R>>>> {
-	static_assert(type_is_optional<range_of_tasks_result<R>>);
-	using value_type = std::ranges::range_value_t<R>;
-	using task_result_type = range_of_tasks_optional_result<R>;
-	// identify<task_result_type> i;
-
-	// we need to materialize to start tasks...
-	// TODO replace with ranges::to
-	std::vector<value_type> materialized{};
-	for (auto && task: tasks) {
-		materialized.emplace_back(std::move(task));
-	}
-
-	auto output = std::optional<std::vector<task_result_type>>(std::in_place);
-	output->reserve(materialized.size());
-
-	for (auto && task: materialized) {
-		auto r = co_await std::move(task);
-
-		if (!output) {
-			continue;
+		// we need to materialize to start tasks...
+		// TODO replace with ranges::to
+		std::vector<value_type> materialized{};
+		for (auto && task: tasks) {
+			materialized.emplace_back(std::move(task));
 		}
 
-		if (!r.has_value()) {
-			output = std::nullopt;
-			continue;
+		std::vector<task_result_type> output{};
+		output.reserve(materialized.size());
+
+		for (auto && task: materialized) {
+			output.emplace_back(co_await std::move(task));
 		}
 
-		output->emplace_back(std::move(*r));
+		co_return output;
 	}
 
-	co_return output;
-}
+	template <range_of_tasks R> friend auto operator|(R && tasks, all_helper self) {
+		return self(std::forward<R>(tasks));
+	}
 
-template <typename... Ts, typename... Scheduler> auto all(co_curl::promise<Ts, Scheduler> &&... promises) -> co_curl::promise<std::tuple<Ts...>> {
-	co_return std::tuple<Ts...>{(co_await std::move(promises))...};
-}
+	template <range_of_tasks R> requires(type_is_optional<range_of_tasks_result<R>>) auto operator()(R && tasks) const -> co_curl::promise<std::optional<std::vector<range_of_tasks_optional_result<R>>>> {
+		static_assert(type_is_optional<range_of_tasks_result<R>>);
+		using value_type = std::ranges::range_value_t<R>;
+		using task_result_type = range_of_tasks_optional_result<R>;
+		// identify<task_result_type> i;
 
-template <typename... Ts, typename... Scheduler> auto all(co_curl::promise<std::optional<Ts>, Scheduler> &&... promises) -> co_curl::promise<std::optional<std::tuple<Ts...>>> {
-	auto tmp = std::tuple<std::optional<Ts>...>{(co_await std::move(promises))...};
-
-	co_return [&]<size_t... Idx>(std::index_sequence<Idx...>) -> std::optional<std::tuple<Ts...>> {
-		if (((!std::get<Idx>(tmp).has_value()) || ... || false)) {
-			return std::nullopt;
+		// we need to materialize to start tasks...
+		// TODO replace with ranges::to
+		std::vector<value_type> materialized{};
+		for (auto && task: tasks) {
+			materialized.emplace_back(std::move(task));
 		}
 
-		return std::tuple<Ts...>{std::move(*std::get<Idx>(tmp))...};
-	}(std::make_index_sequence<sizeof...(Ts)>());
-}
+		auto output = std::optional<std::vector<task_result_type>>(std::in_place);
+		output->reserve(materialized.size());
+
+		for (auto && task: materialized) {
+			auto r = co_await std::move(task);
+
+			if (!output) {
+				continue;
+			}
+
+			if (!r.has_value()) {
+				output = std::nullopt;
+				continue;
+			}
+
+			output->emplace_back(std::move(*r));
+		}
+
+		co_return output;
+	}
+
+	template <range_of_tasks R> requires(type_is_optional<range_of_tasks_result<R>>) friend auto operator|(R && tasks, all_helper self) {
+		return self(std::forward<R>(tasks));
+	}
+
+	template <typename... Ts, typename... Scheduler> auto operator()(co_curl::promise<Ts, Scheduler> &&... promises) const -> co_curl::promise<std::tuple<Ts...>> {
+		co_return std::tuple<Ts...>{(co_await std::move(promises))...};
+	}
+
+	template <typename... Ts, typename... Scheduler> auto operator()(co_curl::promise<std::optional<Ts>, Scheduler> &&... promises) const -> co_curl::promise<std::optional<std::tuple<Ts...>>> {
+		auto tmp = std::tuple<std::optional<Ts>...>{(co_await std::move(promises))...};
+
+		co_return [&]<size_t... Idx>(std::index_sequence<Idx...>) -> std::optional<std::tuple<Ts...>> {
+			if (((!std::get<Idx>(tmp).has_value()) || ... || false)) {
+				return std::nullopt;
+			}
+
+			return std::tuple<Ts...>{std::move(*std::get<Idx>(tmp))...};
+		}(std::make_index_sequence<sizeof...(Ts)>());
+	}
+};
+
+static constexpr auto all = all_helper{};
 
 } // namespace co_curl
 

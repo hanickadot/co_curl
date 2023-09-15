@@ -55,13 +55,9 @@ struct waiting_coroutines_for_curl_finished {
 				break;
 			}
 
-			if (const auto msg = curl.info_read()) {
-				void * handle = msg->visit([&](multi_handle::finished f) {
-					this->code = {.code = f.code};
-					return f.handle;
-				});
-
-				return trigger(handle);
+			if (const auto f = curl.get_finished()) {
+				this->code = {.code = f->code};
+				return trigger(f->handle);
 			}
 
 			if (*r == 0) {
