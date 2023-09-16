@@ -1,6 +1,6 @@
 function(add_example NAME)
 	add_executable(${NAME} ${NAME}.cpp)
-	target_link_libraries(${NAME} co_curl)
+	target_link_libraries(${NAME} PRIVATE co_curl)
 endfunction()
 
 add_example(hello-world)
@@ -22,3 +22,7 @@ add_example(await-all2)
 add_example(select)
 add_example(resume)
 add_example(return)
+add_example(ranges)
+
+find_package(CTRE REQUIRED)
+target_link_libraries(ranges PRIVATE CTRE::CTRE)
