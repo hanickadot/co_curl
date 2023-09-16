@@ -33,7 +33,7 @@ struct thread_pool {
 	}
 
 	void stop_and_join() {
-		for (std::thread & th: threads) {
+		for ([[maybe_unused]] std::thread & th: threads) {
 			add({});
 		}
 

@@ -22,7 +22,11 @@ add_example(await-all2)
 add_example(select)
 add_example(resume)
 add_example(return)
-add_example(ranges)
 
-find_package(CTRE REQUIRED)
-target_link_libraries(ranges PRIVATE CTRE::CTRE)
+
+find_package(CTRE)
+
+if (CTRE_FOUND)
+	add_example(ranges)
+	target_link_libraries(ranges PRIVATE CTRE::CTRE)
+endif()

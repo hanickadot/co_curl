@@ -22,7 +22,7 @@ auto load_file(std::filesystem::path path) -> co_curl::promise<std::vector<char>
 
 	// reserve capacity
 	std::vector<char> output;
-	output.reserve(size);
+	output.reserve(static_cast<size_t>(size));
 
 	// read the data:
 	output.insert(output.begin(), std::istream_iterator<char>(stream), std::istream_iterator<char>());
@@ -87,8 +87,6 @@ int main(int argc, char ** argv) {
 	std::string username = argv[2];
 	std::string password = argv[3];
 	std::filesystem::path in = argv[4];
-
-	auto content = std::span<const char>();
 
 	if (upload(in.filename().string(), url, username, password, in)) {
 		return 0;

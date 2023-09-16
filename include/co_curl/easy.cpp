@@ -23,6 +23,10 @@ bool co_curl::result::is_timeout() const noexcept {
 	return code == CURLE_OPERATION_TIMEDOUT;
 }
 
+bool co_curl::result::is_range_error() const noexcept {
+	return code == CURLE_RANGE_ERROR;
+}
+
 co_curl::easy_handle::easy_handle(): native_handle{curl_easy_init()} { }
 
 co_curl::easy_handle::~easy_handle() noexcept {
@@ -52,6 +56,13 @@ auto co_curl::easy_handle::perform() noexcept -> co_curl::perform {
 
 void co_curl::easy_handle::url(const char * u) {
 	curl_easy_setopt(native_handle, CURLOPT_URL, u);
+}
+
+auto co_curl::easy_handle::url() const noexcept -> std::string_view {
+	char * ptr = nullptr;
+	curl_easy_getinfo(native_handle, CURLINFO_EFFECTIVE_URL, &ptr);
+	assert(ptr != nullptr);
+	return std::string_view{ptr};
 }
 
 void co_curl::easy_handle::follow_location(bool enable) noexcept {
@@ -113,9 +124,17 @@ void co_curl::easy_handle::disable_resume() noexcept {
 	resume(0u);
 }
 
+void co_curl::easy_handle::connection_timeout(std::chrono::milliseconds duration) noexcept {
+	curl_easy_setopt(native_handle, CURLOPT_CONNECTTIMEOUT_MS, static_cast<long>(duration.count()));
+}
+
 void co_curl::easy_handle::low_speed_timeout(std::chrono::seconds duration, size_t bytes_per_second) noexcept {
 	curl_easy_setopt(native_handle, CURLOPT_LOW_SPEED_LIMIT, static_cast<long>(bytes_per_second));
 	curl_easy_setopt(native_handle, CURLOPT_LOW_SPEED_TIME, static_cast<long>(duration.count()));
+}
+
+void co_curl::easy_handle::low_speed_timeout(size_t bytes_per_second, std::chrono::seconds duration) noexcept {
+	low_speed_timeout(duration, bytes_per_second);
 }
 
 void co_curl::easy_handle::set_coroutine_handle(std::coroutine_handle<void> h) noexcept {

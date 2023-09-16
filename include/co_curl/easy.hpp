@@ -32,6 +32,7 @@ struct result {
 
 	bool is_partial_transfer() const noexcept;
 	bool is_timeout() const noexcept;
+	bool is_range_error() const noexcept;
 };
 
 struct easy_handle {
@@ -78,6 +79,8 @@ struct easy_handle {
 	void url(const std::string & u) { url(u.c_str()); }
 	void url(std::string_view u) { url(std::string{u}); } // I know, but CURL doesn't accept pointer+size
 
+	auto url() const noexcept -> std::string_view;
+
 	void follow_location(bool enable = true) noexcept;
 	void verbose(bool enable = true) noexcept;
 	void pipewait(bool enable = true) noexcept;
@@ -97,7 +100,10 @@ struct easy_handle {
 	void resume(size_t position) noexcept;
 	void disable_resume() noexcept;
 
+	void connection_timeout(std::chrono::milliseconds duration) noexcept;
+
 	void low_speed_timeout(std::chrono::seconds duration, size_t bytes_per_second) noexcept;
+	void low_speed_timeout(size_t bytes_per_second, std::chrono::seconds duration) noexcept;
 
 	// support for scheduler
 	void set_coroutine_handle(std::coroutine_handle<void>) noexcept;

@@ -65,7 +65,7 @@ struct data_amount {
 
 	friend auto operator<<(std::ostream & os, data_amount in) -> std::ostream & {
 		const auto r = in.write_into(in.instance_buffer);
-		os.write(r.data(), r.size());
+		os.write(r.data(), static_cast<long>(r.size()));
 		return os;
 	}
 };

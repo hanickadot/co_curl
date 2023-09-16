@@ -5,6 +5,9 @@ project(CO_CURL VERSION 1.0 LANGUAGES CXX)
 if (PROJECT_IS_TOP_LEVEL) 
 	list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 	
+	include(colors)
+	include(pedantic)
+	
 	if (APPLE)
 		set(CMAKE_OSX_DEPLOYMENT_TARGET "13.3")
 	endif() 
