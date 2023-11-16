@@ -8,18 +8,6 @@
 #include <stdexcept>
 #include <string>
 
-template <typename T> struct ranges_to;
-
-template <typename T> struct ranges_to<std::set<T>> {
-	friend auto operator|(auto && range, ranges_to) {
-		std::set<T> output{};
-		for (auto x: range) {
-			output.emplace(x);
-		}
-		return output;
-	}
-};
-
 struct file {
 	std::string url;
 	std::string content;
@@ -33,7 +21,6 @@ auto download_all(std::string_view url) -> co_curl::promise<std::vector<file>> {
 	co_return co_await (
 		co_await co_curl::fetch(url)			 // download index
 		| ctre::range<R"(https?://[^"'\s)]++)">	 // extract all absolute URLs
-		| ranges_to<std::set<std::string>>()	 // replacement for std::ranges::to<std::set<std::string>>
 		| std::views::transform(fetch_with_name) // download them
 		| co_curl::all);						 // wait for all to complete
 }
