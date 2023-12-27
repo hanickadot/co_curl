@@ -1,4 +1,5 @@
 #include "multi.hpp"
+#include <exception>
 #include <limits>
 #include <curl/curl.h>
 

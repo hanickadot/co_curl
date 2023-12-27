@@ -3,7 +3,9 @@
 
 #include "concepts.hpp"
 #include "scheduler.hpp"
+#include <exception>
 #include <optional>
+#include <stdexcept>
 #include <variant>
 #include <cassert>
 #include <concepts>
