@@ -94,3 +94,7 @@ auto co_curl::multi_handle::get_finished() -> std::optional<finished> {
 
 	std::terminate();
 }
+
+void co_curl::multi_handle::max_total_connections(unsigned number) noexcept {
+	curl_multi_setopt(native_handle, CURLMOPT_MAX_TOTAL_CONNECTIONS, (long)number);
+}

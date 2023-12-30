@@ -45,6 +45,8 @@ struct multi_handle {
 	bool sync_perform(unsigned & running_handles);
 	auto sync_perform() -> std::optional<unsigned>;
 
+	void max_total_connections(unsigned num = 8) noexcept;
+
 	bool poll(std::chrono::milliseconds timeout = std::chrono::milliseconds{100}) noexcept;
 
 	// API used by scheduler

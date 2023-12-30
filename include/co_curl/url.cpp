@@ -23,6 +23,11 @@ co_curl::url & co_curl::url::remove_fragment() {
 	return *this;
 }
 
+co_curl::url & co_curl::url::remove_query() {
+	curl_url_set(handle, CURLUPART_QUERY, nullptr, 0);
+	return *this;
+}
+
 co_curl::url & co_curl::url::operator=(const char * cstr) {
 	curl_url_set(handle, CURLUPART_URL, cstr, 0);
 	return *this;
@@ -41,6 +46,9 @@ static std::optional<std::string> get_url_as_string(CURLU * handle, CURLUPart pa
 
 std::optional<std::string> co_curl::url::get() const {
 	return get_url_as_string(handle, CURLUPART_URL);
+}
+std::optional<std::string> co_curl::url::host() const {
+	return get_url_as_string(handle, CURLUPART_HOST);
 }
 std::optional<std::string> co_curl::url::path() const {
 	return get_url_as_string(handle, CURLUPART_PATH);

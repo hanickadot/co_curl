@@ -38,6 +38,10 @@ struct waiting_coroutines_for_curl_finished {
 	multi_handle curl{};
 	result code{};
 
+	waiting_coroutines_for_curl_finished() {
+		curl.max_total_connections(8);
+	}
+
 	void insert(easy_handle & trigger, std::coroutine_handle<> coro_handle) {
 		trigger.set_coroutine_handle(coro_handle);
 		curl.add_handle(trigger);

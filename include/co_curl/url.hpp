@@ -19,10 +19,12 @@ struct url {
 	~url() noexcept;
 
 	url & remove_fragment();
+	url & remove_query();
 
 	url & operator=(const char * cstr);
 
 	std::optional<std::string> get() const;
+	std::optional<std::string> host() const;
 	std::optional<std::string> path() const;
 };
 
