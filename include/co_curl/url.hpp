@@ -21,6 +21,8 @@ struct url {
 	url & remove_fragment();
 	url & remove_query();
 
+	url & set_scheme(const char * proto);
+
 	url & operator=(const char * cstr);
 
 	std::optional<std::string> get() const;

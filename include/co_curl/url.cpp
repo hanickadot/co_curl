@@ -33,6 +33,11 @@ co_curl::url & co_curl::url::operator=(const char * cstr) {
 	return *this;
 }
 
+co_curl::url & co_curl::url::set_scheme(const char * cstr) {
+	curl_url_set(handle, CURLUPART_SCHEME, cstr, 0);
+	return *this;
+}
+
 static std::optional<std::string> get_url_as_string(CURLU * handle, CURLUPart part) {
 	char * ptr{nullptr};
 	curl_url_get(handle, part, &ptr, 0);
