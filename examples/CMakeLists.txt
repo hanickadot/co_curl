@@ -21,7 +21,7 @@ add_example(await-all)
 add_example(await-all2)
 add_example(select)
 add_example(resume)
-add_example(return)
+
 
 
 find_package(CTRE)
@@ -29,4 +29,7 @@ find_package(CTRE)
 if (CTRE_FOUND)
 	add_example(ranges)
 	target_link_libraries(ranges PRIVATE CTRE::CTRE)
+	
+	add_example(return)
+	target_link_libraries(return PRIVATE CTRE::CTRE)
 endif()

@@ -18,11 +18,10 @@ auto fetch_with_name(std::string_view url) -> co_curl::promise<file> {
 }
 
 auto download_all(std::string_view url) -> co_curl::promise<std::vector<file>> {
-	co_return co_await (
-		co_await co_curl::fetch(url)				 // download index
-		| ctre::search_all<R"(https?://[^"'\s)]++)"> // extract all absolute URLs
-		| std::views::transform(fetch_with_name)	 // download them
-		| co_curl::all);							 // wait for all to complete
+	co_return co_await co_curl::all(
+		co_await co_curl::fetch(url)
+		| ctre::search_all<R"(https?://[^"'\s)]++)">
+		| std::views::transform(fetch_with_name));
 }
 
 int main(int argc, char ** argv) {

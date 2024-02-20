@@ -23,35 +23,35 @@ namespace internal {
 		using super::super;
 
 		bool has_value() const noexcept {
-			return super::index() == 1u;
+			return std::holds_alternative<T>(*this);
 		}
 
 		bool has_exception() const noexcept {
-			return super::index() == 2u;
+			return std::holds_alternative<std::exception_ptr>(*this);
 		}
 
 		void check_exception() {
-			if (has_exception()) {
-				std::rethrow_exception(*std::get_if<2>(this));
+			if (auto * eptr = std::get_if<std::exception_ptr>(this)) {
+				std::rethrow_exception(*eptr);
 			}
 		}
 
 		T & ref() {
 			check_exception();
 			assert(has_value());
-			return *std::get_if<1>(this);
+			return *std::get_if<T>(this);
 		}
 
 		const T & cref() {
 			check_exception();
 			assert(has_value());
-			return *std::get_if<1>(this);
+			return *std::get_if<T>(this);
 		}
 
 		T move() {
 			check_exception();
 			assert(has_value());
-			return std::move(*std::get_if<1>(this));
+			return std::move(*std::get_if<T>(this));
 		}
 	};
 
@@ -62,16 +62,16 @@ namespace internal {
 		using super::super;
 
 		bool has_value() const noexcept {
-			return super::index() == 1u;
+			return std::holds_alternative<empty_type>(*this);
 		}
 
 		bool has_exception() const noexcept {
-			return super::index() == 2u;
+			return std::holds_alternative<std::exception_ptr>(*this);
 		}
 
 		void check_exception() {
-			if (has_exception()) {
-				std::rethrow_exception(*std::get_if<2>(this));
+			if (auto * eptr = std::get_if<std::exception_ptr>(this)) {
+				std::rethrow_exception(*eptr);
 			}
 		}
 

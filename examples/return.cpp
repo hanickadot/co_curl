@@ -1,6 +1,6 @@
-#include "/Volumes/projekty/tmp6/compile-time-regular-expressions/include/ctre.hpp"
 #include <co_curl/all.hpp>
 #include <co_curl/co_curl.hpp>
+#include <ctre.hpp>
 #include <ranges>
 
 struct no_attempts_left {
@@ -48,7 +48,7 @@ auto fetch_with_name(std::string_view url) -> co_curl::promise<name_and_content>
 
 auto fetch_all(std::string url) -> co_curl::promise<std::vector<name_and_content>> {
 	const auto index = co_await fetch(url);
-	const auto links = ctre::range<R"(https?://[^"'\s]++)">(index);
+	const auto links = ctre::search_all<R"(https?://[^"'\s]++)">(index);
 
 	// it will download all in parallel (in one thread :)
 	co_return co_await co_curl::all(links | std::views::transform(fetch_with_name));
