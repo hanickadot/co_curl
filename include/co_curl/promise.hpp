@@ -282,15 +282,15 @@ template <typename R, typename Scheduler = co_curl::default_scheduler> struct pr
 
 	// support for moving out!
 	auto operator co_await() & {
-		return lvalue_awaiter(*this);
+		return lvalue_awaiter{*this};
 	}
 
 	auto operator co_await() const & {
-		return const_lvalue_awaiter(*this);
+		return const_lvalue_awaiter{*this};
 	}
 
 	auto operator co_await() && {
-		return rvalue_awaiter(*this);
+		return rvalue_awaiter{*this};
 	}
 
 	auto operator co_await() const && = delete;
