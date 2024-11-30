@@ -1,6 +1,7 @@
 #include "list.hpp"
 #include <stdexcept>
 #include <curl/curl.h>
+#include <cstdlib>
 
 // accessing internals of the CURL library (don't do that)
 
