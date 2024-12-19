@@ -127,9 +127,9 @@ struct easy_handle {
 
 		const auto helper = +[](char * in, size_t, size_t nmemb, void * udata) -> size_t {
 			const auto data = T(reinterpret_cast<const value_type *>(const_cast<const char *>(in)), nmemb);
-			fnc_t & f = *static_cast<fnc_t *>(udata);
+			fnc_t & f2 = *static_cast<fnc_t *>(udata);
 			try {
-				f(data);
+				f2(data);
 				return nmemb;
 			} catch (...) {
 				return size_t(-1);
@@ -177,9 +177,9 @@ struct easy_handle {
 
 		const auto helper = +[](char * in, size_t, size_t nmemb, void * udata) -> size_t {
 			const auto target = T(reinterpret_cast<value_type *>(in), nmemb);
-			fnc_t & f = *static_cast<fnc_t *>(udata);
+			fnc_t & f2 = *static_cast<fnc_t *>(udata);
 			try {
-				return f(target);
+				return f2(target);
 			} catch (...) {
 				return size_t(-1);
 			}
