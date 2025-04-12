@@ -29,3 +29,7 @@ set_target_properties(co_curl PROPERTIES
   VERSION ${CO_CURL_VERSION}
   SOVERSION 1.0
 )
+
+if (CMAKE_BUILD_TYPE MATCHES Debug) 
+	target_compile_definitions(co_curl PUBLIC CO_CURL_DEBUG=1)
+endif()

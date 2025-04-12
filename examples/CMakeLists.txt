@@ -21,6 +21,7 @@ add_example(await-all)
 add_example(await-all2)
 add_example(select)
 add_example(resume)
+add_example(threads)
 
 
 

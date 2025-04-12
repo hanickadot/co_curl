@@ -124,15 +124,23 @@ template <typename Promise> concept promise_with_scheduler = requires(Promise & 
 	{ promise.scheduler };
 };
 
-template <promise_with_scheduler Promise> struct suspend_and_schedule_next {
+template <promise_with_scheduler Promise> struct final_suspend_and_schedule_next {
 	Promise & promise;
 
-	suspend_and_schedule_next(Promise & pr) noexcept: promise{pr} { }
+	final_suspend_and_schedule_next(Promise & pr) noexcept: promise{pr} { }
 
 	constexpr bool await_ready() const noexcept { return false; }
 	constexpr void await_resume() const noexcept { }
-	constexpr auto await_suspend(std::coroutine_handle<Promise>) noexcept {
-		// TODO: if there is multiple awaiters, we want to let know scheduler
+	constexpr auto await_suspend(std::coroutine_handle<Promise> self) noexcept -> std::coroutine_handle<> {
+		// if we are in thread, we stop the the thread and let everyone else know we are
+		if (promise.scheduler.finish_thread(self, false)) {
+			return std::noop_coroutine();
+		}
+
+		// finish is called differently if it's finishing in other thread
+		promise.scheduler.finish();
+
+		// if we were not in thread, we can wait someone else
 		promise.scheduler.wakeup_coroutines_waiting_for(promise.self());
 		return promise.scheduler.select_next_coroutine(promise.awaiter);
 	}
@@ -157,8 +165,7 @@ template <typename R, typename Scheduler> struct promise_type: internal::promise
 	};
 
 	constexpr auto final_suspend() noexcept {
-		scheduler.finish();
-		return suspend_and_schedule_next(*this);
+		return final_suspend_and_schedule_next(*this);
 	};
 
 	constexpr auto self() noexcept -> std::coroutine_handle<promise_type> {

@@ -2,6 +2,7 @@
 #define CO_CURL_CO_CURL_HPP
 
 #include "easy.hpp"
+#include "intense.hpp"
 #include "multi.hpp"
 #include "promise.hpp"
 #include "scheduler.hpp"

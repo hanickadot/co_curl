@@ -3,11 +3,12 @@
 
 namespace co_curl {
 
-#ifdef DEBUG
+#ifdef CO_CURL_DEBUG
 
 struct task_counter {
 	unsigned tasks_in_running{0};
 	unsigned tasks_blocked{0};
+	unsigned tasks_in_different_thread{0};
 
 	constexpr void start() noexcept {
 		++tasks_in_running;
@@ -15,6 +16,14 @@ struct task_counter {
 
 	constexpr void finish() noexcept {
 		--tasks_in_running;
+	}
+
+	constexpr void switched_to_different_thread() noexcept {
+		++tasks_in_different_thread;
+	}
+
+	constexpr void switched_back_to_main_thread() noexcept {
+		--tasks_in_different_thread;
 	}
 
 	constexpr void blocked() noexcept {
@@ -26,13 +35,13 @@ struct task_counter {
 	}
 
 	constexpr bool graph_blocked() const noexcept {
-		return tasks_in_running == tasks_blocked;
+		return (tasks_in_running - tasks_in_different_thread) == tasks_blocked;
 	}
 
 	inline void print() const noexcept {
 		std::cout << "tasks: " << tasks_in_running;
-
 		std::cout << ", sleeping: " << tasks_blocked;
+		std::cout << ", different thread: " << tasks_in_different_thread;
 
 		if (graph_blocked()) {
 			std::cout << " [blocked]";
@@ -53,6 +62,14 @@ struct task_counter {
 
 	constexpr void finish() noexcept {
 		--blocked_balance;
+	}
+
+	constexpr void switched_to_different_thread() noexcept {
+		--blocked_balance;
+	}
+
+	constexpr void switched_back_to_main_thread() noexcept {
+		++blocked_balance;
 	}
 
 	constexpr void blocked() noexcept {
